@@ -1,0 +1,45 @@
+// Bad Jenkinsfile — triggers many PipeGuard rules
+// DO NOT use this in production
+
+pipeline {
+    agent any
+
+    environment {
+        DB_PASSWORD = "supersecret123"
+        AWS_SECRET_KEY = credentials('aws-key')
+    }
+
+    stages {
+        stage('Build') {
+            steps {
+                sh 'echo $DB_PASSWORD'
+                sh 'curl -sSL https://install.example.com | bash'
+                sh 'npm install'
+                sh 'npm run build'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'npm test'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh 'scp -o StrictHostKeyChecking=no build/* user@prod:/var/www/'
+                sh 'ssh prod "sudo systemctl restart app"'
+                sh """
+                    chmod 777 /tmp/deploy
+                    rm -rf /
+                """
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline finished'
+        }
+    }
+}

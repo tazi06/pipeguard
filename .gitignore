@@ -1,0 +1,36 @@
+# Binaries (root only, not cmd/pipeguard/)
+/pipeguard
+/pipeguard.exe
+*.dll
+*.so
+*.dylib
+
+# Build output
+dist/
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Test output
+coverage.out
+coverage.html
+
+# Temp
+*.tmp
+*.log
+
+# Landing page & docs site (deployed separately)
+index.html
+docs-site/
+
+# Formula template (goreleaser generates the real one)
+Formula/

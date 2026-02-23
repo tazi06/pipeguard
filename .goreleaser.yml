@@ -1,0 +1,62 @@
+project_name: pipeguard
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - main: ./cmd/pipeguard/
+    binary: pipeguard
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.Version={{.Version}}
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: "checksums.txt"
+
+brews:
+  - repository:
+      owner: tazi06
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    folder: Formula
+    homepage: "https://github.com/tazi06/pipeguard"
+    description: "Pipeline Security & Quality Scanner — 145 rules, dual scoring, SARIF output"
+    license: "AGPL-3.0"
+    test: |
+      system "#{bin}/pipeguard", "--version"
+    install: |
+      bin.install "pipeguard"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "^chore:"
+
+release:
+  github:
+    owner: tazi06
+    name: pipeguard
+  draft: false
+  prerelease: auto
+  name_template: "PipeGuard v{{ .Version }}"

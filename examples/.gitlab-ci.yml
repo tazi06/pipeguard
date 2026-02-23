@@ -1,0 +1,41 @@
+# Bad GitLab CI — triggers many PipeGuard rules
+# DO NOT use this in production
+
+image: ubuntu:latest
+
+variables:
+  DB_PASSWORD: "supersecret123"
+  AWS_SECRET_KEY: "AKIAIOSFODNN7EXAMPLE"
+  API_TOKEN: "ghp_xxxxxxxxxxxxxxxxxxxx"
+
+stages:
+  - build
+  - test
+  - deploy
+
+build-job:
+  stage: build
+  script:
+    - echo $DB_PASSWORD
+    - apt-get update && apt-get install -y curl
+    - curl -sSL https://install.example.com | bash
+    - npm install
+    - npm run build
+  allow_failure: true
+
+test-job:
+  stage: test
+  script:
+    - echo "running tests"
+    - npm test
+  allow_failure: true
+
+deploy-production:
+  stage: deploy
+  script:
+    - echo "deploying to prod"
+    - scp -o StrictHostKeyChecking=no build/* user@prod-server:/var/www/
+    - ssh prod-server "sudo systemctl restart app"
+  when: manual
+  environment:
+    name: production

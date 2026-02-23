@@ -1,0 +1,306 @@
+package rules
+
+import "regexp"
+
+// QualityRules returns all Q01-Q35 pipeline quality and reliability rules.
+// These apply to GitLab CI and GitHub Actions YAML files.
+func QualityRules() []*Rule {
+	pipelineFiles := []FileType{GitLabCI, GitHubActions}
+
+	return []*Rule{
+		// === Versioning & Reproducibility (Q01-Q05) ===
+		{
+			ID: "Q01", Category: PQL, Severity: High, Points: 3,
+			Description: "Docker image without version tag",
+			Why:         "image: node pulls :latest implicitly — different versions across builds",
+			Pattern:     regexp.MustCompile(`(?i)image:\s+['"]?([a-zA-Z0-9._/-]+)\s*$`),
+			Negative:    false, Scope: LineScope, FileTypes: pipelineFiles,
+			FixType: FullFix, FixDesc: "Pin image version: image: node:20-alpine",
+		},
+		{
+			ID: "Q02", Category: PQL, Severity: Medium, Points: 3,
+			Description: "Service image using :latest tag",
+			Why:         "Service containers with :latest cause intermittent test failures when image updates",
+			Pattern:     regexp.MustCompile(`(?i)^\s*-?\s*['"]?[\w./-]+:latest['"]?\s*$`),
+			Negative:    false, Scope: LineScope, FileTypes: pipelineFiles,
+			FixType: FullFix, FixDesc: "Pin service versions: postgres:15-alpine",
+		},
+		{
+			ID: "Q03", Category: PQL, Severity: Medium, Points: 2,
+			Description: "Using ubuntu-latest in GitHub Actions",
+			Why:         "ubuntu-latest changes yearly — breaking builds when new Ubuntu version has different packages",
+			Pattern:     regexp.MustCompile(`(?i)runs-on:\s*ubuntu-latest`),
+			Negative:    false, Scope: LineScope, FileTypes: []FileType{GitHubActions},
+			FixType: FullFix, FixDesc: "Pin runner: runs-on: ubuntu-22.04",
+		},
+		{
+			ID: "Q04", Category: PQL, Severity: Medium, Points: 2,
+			Description: "GitHub Action using @main or @master",
+			Why:         "Actions pinned to branch get any change — supply chain risk and broken builds",
+			Pattern:     regexp.MustCompile(`uses:\s+\S+@(main|master)\b`),
+			Negative:    false, Scope: LineScope, FileTypes: []FileType{GitHubActions},
+			FixType: FullFix, FixDesc: "Pin to specific version: uses: actions/checkout@v4",
+		},
+		{
+			ID: "Q05", Category: PQL, Severity: Medium, Points: 3,
+			Description: "No caching configured for dependencies",
+			Why:         "Without cache, every pipeline downloads all dependencies from scratch — slow and wasteful",
+			Pattern:     regexp.MustCompile(`(?i)(cache:|actions/cache|save_cache|restore_cache|cache\s*:.*key)`),
+			Negative:    true, Scope: FileScope, FileTypes: pipelineFiles,
+			FixType: FullFix, FixDesc: "Add dependency caching for your package manager",
+		},
+
+		// === Job Dependencies & Flow (Q06-Q10) ===
+		{
+			ID: "Q06", Category: PQL, Severity: Medium, Points: 3,
+			Description: "No job dependency chain defined",
+			Why:         "Without needs/depends_on, jobs run sequentially by stage — no parallel optimization",
+			Pattern:     regexp.MustCompile(`(?i)(needs:|depends_on:|needs:\s*\[)`),
+			Negative:    true, Scope: FileScope, FileTypes: pipelineFiles,
+			FixType: PartialFix, FixDesc: "Add needs: [job_name] for proper dependency chains",
+		},
+		{
+			ID: "Q07", Category: PQL, Severity: Medium, Points: 2,
+			Description: "Artifacts without expire_in or retention",
+			Why:         "Artifacts without expiry accumulate forever — CI storage exhausted in months",
+			Pattern:     regexp.MustCompile(`(?i)(expire_in:|retention-days:)`),
+			Negative:    true, Scope: FileScope, FileTypes: pipelineFiles,
+			FixType: FullFix, FixDesc: "Add expire_in: 1 week to artifacts section",
+		},
+		{
+			ID: "Q08", Category: PQL, Severity: Low, Points: 2,
+			Description: "No retry configuration for flaky steps",
+			Why:         "Network timeouts fail pipeline permanently — retry(2) recovers from transient errors",
+			Pattern:     regexp.MustCompile(`(?i)(retry:|retry\s*:\s*[0-9]|retries:)`),
+			Negative:    true, Scope: FileScope, FileTypes: pipelineFiles,
+			FixType: FullFix, FixDesc: "Add retry: 2 on jobs with external dependencies",
+		},
+		{
+			ID: "Q09", Category: PQL, Severity: Medium, Points: 3,
+			Description: "Using deprecated only/except syntax",
+			Why:         "only/except is deprecated in GitLab CI — use rules: for clearer trigger logic",
+			Pattern:     regexp.MustCompile(`(?i)^\s*(only|except):`),
+			Negative:    false, Scope: LineScope, FileTypes: []FileType{GitLabCI},
+			FixType: FullFix, FixDesc: "Replace only/except with rules: syntax",
+		},
+		{
+			ID: "Q10", Category: PQL, Severity: Medium, Points: 2,
+			Description: "Using deprecated set-output in GitHub Actions",
+			Why:         "set-output is deprecated — use $GITHUB_OUTPUT environment file instead",
+			Pattern:     regexp.MustCompile(`::set-output|save-state`),
+			Negative:    false, Scope: LineScope, FileTypes: []FileType{GitHubActions},
+			FixType: FullFix, FixDesc: "Replace with: echo \"key=value\" >> $GITHUB_OUTPUT",
+		},
+
+		// === Performance & Optimization (Q11-Q15) ===
+		{
+			ID: "Q11", Category: PQL, Severity: Medium, Points: 3,
+			Description: "No interruptible flag on non-critical jobs",
+			Why:         "Old pipeline keeps running when new commit pushed — wasting 2x CI resources",
+			Pattern:     regexp.MustCompile(`(?i)interruptible:\s*true`),
+			Negative:    true, Scope: FileScope, FileTypes: []FileType{GitLabCI},
+			FixType: FullFix, FixDesc: "Add interruptible: true on build and test jobs",
+		},
+		{
+			ID: "Q12", Category: PQL, Severity: Medium, Points: 2,
+			Description: "No concurrency control in GitHub Actions",
+			Why:         "Multiple workflows for same branch run simultaneously — wasting resources",
+			Pattern:     regexp.MustCompile(`(?i)concurrency:`),
+			Negative:    true, Scope: FileScope, FileTypes: []FileType{GitHubActions},
+			FixType: FullFix, FixDesc: "Add concurrency: group with cancel-in-progress: true",
+		},
+		{
+			ID: "Q13", Category: PQL, Severity: Medium, Points: 3,
+			Description: "No resource group for deployment jobs",
+			Why:         "Concurrent deploys to same environment cause race conditions",
+			Pattern:     regexp.MustCompile(`(?i)(resource_group:|concurrency:.*deploy)`),
+			Negative:    true, Scope: FileScope, FileTypes: pipelineFiles,
+			FixType: FullFix, FixDesc: "Add resource_group: production on deploy jobs",
+		},
+		{
+			ID: "Q14", Category: PQL, Severity: Low, Points: 2,
+			Description: "No parallel execution configured",
+			Why:         "Tests run sequentially when they could run in parallel — wasting time",
+			Pattern:     regexp.MustCompile(`(?i)(parallel:|matrix:|strategy:.*matrix)`),
+			Negative:    true, Scope: FileScope, FileTypes: pipelineFiles,
+			FixType: PartialFix, FixDesc: "Use parallel: or matrix strategy for test splitting",
+		},
+		{
+			ID: "Q15", Category: PQL, Severity: Low, Points: 2,
+			Description: "Pipeline exceeds 15 stages",
+			Why:         "More than 15 stages indicates pipeline complexity — consider splitting or simplifying",
+			Pattern:     regexp.MustCompile(`(?i)stages:`),
+			Negative:    true, Scope: FileScope, FileTypes: []FileType{GitLabCI},
+			FixType: NoFix, FixDesc: "Consolidate stages — aim for 5-8 stages maximum",
+		},
+
+		// === DRY & Maintainability (Q16-Q20) ===
+		{
+			ID: "Q16", Category: PQL, Severity: Medium, Points: 3,
+			Description: "No template/extends usage for DRY",
+			Why:         "Copy-pasted config across 10 jobs — one change requires editing 10 places",
+			Pattern:     regexp.MustCompile(`(?i)(extends:|!reference|include:|uses:.*reusable|&\w+|<<:\s*\*)`),
+			Negative:    true, Scope: FileScope, FileTypes: pipelineFiles,
+			FixType: PartialFix, FixDesc: "Use extends: .template or YAML anchors for shared config",
+		},
+		{
+			ID: "Q17", Category: PQL, Severity: Medium, Points: 2,
+			Description: "Script block exceeds 10 lines",
+			Why:         "Long inline scripts are hard to maintain — extract to shell script file",
+			Pattern:     regexp.MustCompile(`(?is)script:\s*\n(\s+-\s+.*\n){10,}`),
+			Negative:    false, Scope: FileScope, FileTypes: pipelineFiles,
+			FixType: PartialFix, FixDesc: "Extract long scripts to .sh files: script: [./scripts/build.sh]",
+		},
+		{
+			ID: "Q18", Category: PQL, Severity: Medium, Points: 2,
+			Description: "Hardcoded URLs or IPs in pipeline",
+			Why:         "Hardcoded http://10.x or http://192.168.x breaks when infrastructure changes",
+			Pattern:     regexp.MustCompile(`(?i)https?://(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.)`),
+			Negative:    false, Scope: LineScope, FileTypes: pipelineFiles,
+			FixType: FullFix, FixDesc: "Use CI/CD variables: $DEPLOY_URL instead of hardcoded IPs",
+		},
+		{
+			ID: "Q19", Category: PQL, Severity: High, Points: 3,
+			Description: "Script without proper error handling",
+			Why:         "Without set -e, failed commands are silently ignored — pipeline reports success on failure",
+			Pattern:     regexp.MustCompile(`(?i)(set\s+-e|set\s+-eo\s*pipefail|#!/bin/bash\s+-e|bash\s+-e)`),
+			Negative:    true, Scope: FileScope, FileTypes: pipelineFiles,
+			FixType: FullFix, FixDesc: "Add set -eo pipefail at start of multi-line scripts",
+		},
+		{
+			ID: "Q20", Category: PQL, Severity: Medium, Points: 2,
+			Description: "No runner/tag specification",
+			Why:         "Without tags, jobs run on any available runner — including misconfigured or slow ones",
+			Pattern:     regexp.MustCompile(`(?i)(tags:|runs-on:|agent\s*\{.*label)`),
+			Negative:    true, Scope: FileScope, FileTypes: pipelineFiles,
+			FixType: PartialFix, FixDesc: "Add tags: [docker] or runs-on: to specify runner requirements",
+		},
+
+		// === Cleanup & Lifecycle (Q21-Q25) ===
+		{
+			ID: "Q21", Category: PQL, Severity: Medium, Points: 2,
+			Description: "No after_script or post-job cleanup",
+			Why:         "Without cleanup, temporary files and credentials persist on runner between builds",
+			Pattern:     regexp.MustCompile(`(?i)(after_script:|post:|cleanup:|post\s*\{)`),
+			Negative:    true, Scope: FileScope, FileTypes: pipelineFiles,
+			FixType: FullFix, FixDesc: "Add after_script: to clean up temp files and credentials",
+		},
+		{
+			ID: "Q22", Category: PQL, Severity: Medium, Points: 3,
+			Description: "allow_failure on critical security jobs",
+			Why:         "Security scans with allow_failure: true never block deployment — defeats the purpose",
+			Pattern:     regexp.MustCompile(`(?is)(sast|dast|secret|scan|security|trivy|grype|semgrep).*allow_failure:\s*true`),
+			Negative:    false, Scope: FileScope, FileTypes: pipelineFiles,
+			FixType: FullFix, FixDesc: "Set allow_failure: false on all security-related jobs",
+		},
+		{
+			ID: "Q23", Category: PQL, Severity: Medium, Points: 2,
+			Description: "No test coverage reporting in pipeline",
+			Why:         "Without coverage tracking, test quality degrades over time without anyone noticing",
+			Pattern:     regexp.MustCompile(`(?i)(coverage:\s*['"]|codecov|coveralls|coverage-report|--coverage)`),
+			Negative:    true, Scope: FileScope, FileTypes: pipelineFiles,
+			FixType: FullFix, FixDesc: "Add coverage reporting to test stage",
+		},
+		{
+			ID: "Q24", Category: PQL, Severity: Low, Points: 2,
+			Description: "Echo or print of environment secrets",
+			Why:         "Debugging with echo $SECRET exposes credentials in build logs",
+			Pattern:     regexp.MustCompile(`(?i)(echo|print)\s+.*\$(SECRET|TOKEN|PASSWORD|KEY|CRED)`),
+			Negative:    false, Scope: LineScope, FileTypes: pipelineFiles,
+			FixType: FullFix, FixDesc: "Remove echo/print statements that reference secret variables",
+		},
+		{
+			ID: "Q25", Category: PQL, Severity: Medium, Points: 2,
+			Description: "No variable scoping (global variables everywhere)",
+			Why:         "Global variables leak across jobs — a debug variable in one job affects another",
+			Pattern:     regexp.MustCompile(`(?i)variables:\s*\n\s+\w+:`),
+			Negative:    false, Scope: FileScope, FileTypes: pipelineFiles,
+			FixType: PartialFix, FixDesc: "Move variables to job-level scope where possible",
+		},
+
+		// === Triggers & Workflow Control (Q26-Q30) ===
+		{
+			ID: "Q26", Category: PQL, Severity: Medium, Points: 3,
+			Description: "No path-based trigger filtering",
+			Why:         "README.md change triggers full 30-min build pipeline — total waste of CI resources",
+			Pattern:     regexp.MustCompile(`(?i)(changes:|paths:|paths-filter|on:.*push:.*paths:)`),
+			Negative:    true, Scope: FileScope, FileTypes: pipelineFiles,
+			FixType: FullFix, FixDesc: "Add path filters: only run build when src/ files change",
+		},
+		{
+			ID: "Q27", Category: PQL, Severity: Medium, Points: 3,
+			Description: "Per-job timeout not configured",
+			Why:         "Global timeout only — one hung DAST scan eats the entire pipeline budget",
+			Pattern:     regexp.MustCompile(`(?i)(timeout:\s*\d|timeout-minutes:)`),
+			Negative:    true, Scope: FileScope, FileTypes: pipelineFiles,
+			FixType: FullFix, FixDesc: "Add timeout per job: timeout: 10 minutes for scans, 30 for builds",
+		},
+		{
+			ID: "Q28", Category: PQL, Severity: Low, Points: 2,
+			Description: "Artifacts with overly broad paths",
+			Why:         "artifacts: paths: ['**/*'] captures everything — huge uploads, slow pipeline",
+			Pattern:     regexp.MustCompile(`(?i)paths:.*(\*\*/\*|\*\.\*|node_modules|\.git)`),
+			Negative:    false, Scope: LineScope, FileTypes: pipelineFiles,
+			FixType: FullFix, FixDesc: "Be specific: artifacts: paths: [\"dist/\", \"reports/\"]",
+		},
+		{
+			ID: "Q29", Category: PQL, Severity: Medium, Points: 3,
+			Description: "No YAML anchors or extends for duplicated config",
+			Why:         "Same image/tags/before_script in 10 jobs — one change needs editing everywhere",
+			Pattern:     regexp.MustCompile(`(?i)(&\w+|<<:\s*\*\w+|extends:\s+\.)`),
+			Negative:    true, Scope: FileScope, FileTypes: []FileType{GitLabCI},
+			FixType: PartialFix, FixDesc: "Use .template: + extends: .template for shared configuration",
+		},
+		{
+			ID: "Q30", Category: PQL, Severity: Medium, Points: 3,
+			Description: "Manual trigger on non-deploy stages",
+			Why:         "when: manual on test/scan stages — developers skip them, bugs reach production",
+			Pattern:     regexp.MustCompile(`(?is)(test|scan|lint|build|sast).*when:\s*manual`),
+			Negative:    false, Scope: FileScope, FileTypes: pipelineFiles,
+			FixType: FullFix, FixDesc: "Remove when: manual from all non-production-deploy stages",
+		},
+
+		// === Advanced Quality (Q31-Q35) ===
+		{
+			ID: "Q31", Category: PQL, Severity: Low, Points: 2,
+			Description: "No pipeline duration monitoring",
+			Why:         "Pipeline grows from 10 to 45 minutes over months — nobody notices until developers complain",
+			Pattern:     regexp.MustCompile(`(?i)(duration|timing|time.*track|benchmark.*pipeline)`),
+			Negative:    true, Scope: FileScope, FileTypes: pipelineFiles,
+			FixType: PartialFix, FixDesc: "Track pipeline duration and alert if exceeding 30 minutes",
+		},
+		{
+			ID: "Q32", Category: PQL, Severity: High, Points: 4,
+			Description: "Docker-in-Docker without TLS or pinned version",
+			Why:         "DinD without TLS — anyone on network controls your Docker daemon. :latest = non-reproducible",
+			Pattern:     regexp.MustCompile(`(?i)docker:(latest|dind)\b`),
+			Exclude:     regexp.MustCompile(`(?i)DOCKER_TLS_CERTDIR`),
+			Negative:    false, Scope: FileScope, FileTypes: pipelineFiles,
+			FixType: FullFix, FixDesc: "Use docker:24.0-dind with DOCKER_TLS_CERTDIR: /certs",
+		},
+		{
+			ID: "Q33", Category: PQL, Severity: Medium, Points: 3,
+			Description: "No YAML validation or linting in pipeline",
+			Why:         "Push broken YAML — pipeline does not start — 5 min to realize, fix, push again",
+			Pattern:     regexp.MustCompile(`(?i)(yamllint|gitlab-ci-lint|actionlint|pre-commit.*yaml)`),
+			Negative:    true, Scope: FileScope, FileTypes: pipelineFiles,
+			FixType: FullFix, FixDesc: "Add yamllint or actionlint as pre-commit hook or early pipeline stage",
+		},
+		{
+			ID: "Q34", Category: PQL, Severity: Medium, Points: 3,
+			Description: "No notification on pipeline status change",
+			Why:         "Pipeline fixed at 2am — nobody knows — team still debugging broken CI in morning",
+			Pattern:     regexp.MustCompile(`(?i)(slack|teams|webhook|notify|notification|discord|email).*(pipeline|build|deploy|status)`),
+			Negative:    true, Scope: FileScope, FileTypes: pipelineFiles,
+			FixType: FullFix, FixDesc: "Add notification on pipeline status changes (success after failure)",
+		},
+		{
+			ID: "Q35", Category: PQL, Severity: Medium, Points: 2,
+			Description: "No rootless container build alternative",
+			Why:         "Docker build requires privileged mode — Kaniko/Buildah work rootless and are safer",
+			Pattern:     regexp.MustCompile(`(?i)(kaniko|buildah|img\s+build|makisu)`),
+			Negative:    true, Scope: FileScope, FileTypes: pipelineFiles,
+			FixType: PartialFix, FixDesc: "Consider Kaniko or Buildah for rootless container builds",
+		},
+	}
+}
