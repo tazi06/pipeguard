@@ -18,7 +18,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Add gitleaks scanning stage",
 		},
 		{
-			ID: "R02", Category: SEC, Severity: High, Points: 2,
+			ID: "R02", Category: SEC, Severity: High, Points: 1,
 			Description: "Secret scanning allows failure",
 			Why:         "allow_failure: true on secret scanning means leaked secrets do not block the pipeline",
 			Pattern:     regexp.MustCompile(`(?is)(gitleaks|trufflehog|detect-secrets).*?allow_failure:\s*true`),
@@ -26,7 +26,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Set allow_failure: false on secret scanning job",
 		},
 		{
-			ID: "R03", Category: SEC, Severity: Critical, Points: 5,
+			ID: "R03", Category: SEC, Severity: Critical, Points: 3,
 			Description: "Hardcoded secret or credential in pipeline",
 			Why:         "Secrets in YAML are visible to anyone with repo access and stored in git history forever",
 			Pattern:     regexp.MustCompile(`(?i)(password|secret_key|api_key|apikey|access_key|private_key|token)\s*[:=]\s*['"]?[A-Za-z0-9+/=_-]{8,}`),
@@ -34,7 +34,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: NoFix, FixDesc: "Move to CI/CD variables with masked + protected flags",
 		},
 		{
-			ID: "R04", Category: SEC, Severity: Medium, Points: 2,
+			ID: "R04", Category: SEC, Severity: Medium, Points: 1,
 			Description: "No pre-commit hook for secrets",
 			Why:         "Without pre-commit, secrets reach remote repo before any scanner can catch them",
 			Pattern:     regexp.MustCompile(`(?i)(pre-commit|pre_commit|husky|--since-commit)`),
@@ -42,7 +42,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: PartialFix, FixDesc: "Add pre-commit hook with gitleaks",
 		},
 		{
-			ID: "R05", Category: SEC, Severity: High, Points: 2,
+			ID: "R05", Category: SEC, Severity: Medium, Points: 1,
 			Description: "No Vault or external secret manager integration",
 			Why:         "CI/CD variables are better than hardcoded secrets, but Vault provides rotation, audit trail, and dynamic secrets",
 			Pattern:     regexp.MustCompile(`(?i)(vault|hashicorp|aws-secrets-manager|azure-keyvault|gcp-secret-manager|sealed-secret)`),
@@ -76,7 +76,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Add Semgrep SAST scanning stage",
 		},
 		{
-			ID: "R09", Category: SAS, Severity: High, Points: 2,
+			ID: "R09", Category: SAS, Severity: High, Points: 1,
 			Description: "SAST scanning allows failure",
 			Why:         "allow_failure: true on SAST means critical vulnerabilities do not block deployment",
 			Pattern:     regexp.MustCompile(`(?is)(semgrep|sonar|codeql|sast).*?allow_failure:\s*true`),
@@ -84,7 +84,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Set allow_failure: false on SAST job",
 		},
 		{
-			ID: "R10", Category: SAS, Severity: Medium, Points: 2,
+			ID: "R10", Category: SAS, Severity: Medium, Points: 1,
 			Description: "No custom SAST rules or configuration",
 			Why:         "Default rules miss business-logic vulnerabilities specific to your application",
 			Pattern:     regexp.MustCompile(`(?i)(\.semgrepignore|semgrep.*--config|sonar-project\.properties|codeql.*config)`),
@@ -92,7 +92,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: PartialFix, FixDesc: "Add custom Semgrep rules for your tech stack",
 		},
 		{
-			ID: "R11", Category: SAS, Severity: Medium, Points: 2,
+			ID: "R11", Category: SAS, Severity: Medium, Points: 1,
 			Description: "No SAST output in machine-readable format",
 			Why:         "Without SARIF/JSON output, results cannot feed into dashboards or quality gates",
 			Pattern:     regexp.MustCompile(`(?i)(--sarif|--json|--format\s+(sarif|json)|--output)`),
@@ -100,7 +100,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Add --sarif or --json flag to SAST command",
 		},
 		{
-			ID: "R12", Category: SAS, Severity: High, Points: 2,
+			ID: "R12", Category: SAS, Severity: Medium, Points: 1,
 			Description: "No linting stage",
 			Why:         "Linting catches code style and simple errors before more expensive SAST analysis",
 			Pattern:     regexp.MustCompile(`(?i)(eslint|pylint|flake8|golangci-lint|rubocop|stylelint|lint)`),
@@ -108,7 +108,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Add linting stage with appropriate linter for your language",
 		},
 		{
-			ID: "R13", Category: SAS, Severity: Medium, Points: 2,
+			ID: "R13", Category: SAS, Severity: Medium, Points: 1,
 			Description: "No quality gate or threshold for SAST",
 			Why:         "Without a gate, SAST runs but never blocks — developers ignore findings",
 			Pattern:     regexp.MustCompile(`(?i)(quality.?gate|--fail-on|--severity\s+(error|critical|high)|--exit-code|threshold)`),
@@ -116,7 +116,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: PartialFix, FixDesc: "Add quality gate: fail on critical/high severity findings",
 		},
 		{
-			ID: "R14", Category: SAS, Severity: Low, Points: 2,
+			ID: "R14", Category: SAS, Severity: Low, Points: 1,
 			Description: "No IaC scanning for Terraform/CloudFormation",
 			Why:         "Misconfigured infrastructure-as-code deploys insecure cloud resources",
 			Pattern:     regexp.MustCompile(`(?i)(tfsec|checkov|terrascan|kics|cfn-lint|cfn_nag|tflint)`),
@@ -134,7 +134,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Add dependency scanning with Trivy or Snyk",
 		},
 		{
-			ID: "R16", Category: SCA, Severity: High, Points: 2,
+			ID: "R16", Category: SCA, Severity: High, Points: 1,
 			Description: "Dependency scanning allows failure",
 			Why:         "Allowing failure means known vulnerable dependencies reach production",
 			Pattern:     regexp.MustCompile(`(?is)(npm.audit|govulncheck|pip-audit|trivy|grype|snyk).*?allow_failure:\s*true`),
@@ -142,7 +142,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Set allow_failure: false on dependency scanning",
 		},
 		{
-			ID: "R17", Category: SCA, Severity: High, Points: 2,
+			ID: "R17", Category: SCA, Severity: Medium, Points: 1,
 			Description: "No container image scanning",
 			Why:         "Base images contain OS packages with known CVEs that attackers exploit",
 			Pattern:     regexp.MustCompile(`(?i)(trivy\s+image|grype|snyk\s+container|anchore|clair|docker\s+scout)`),
@@ -150,7 +150,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Add Trivy container image scanning stage",
 		},
 		{
-			ID: "R18", Category: SCA, Severity: Medium, Points: 2,
+			ID: "R18", Category: SCA, Severity: Medium, Points: 1,
 			Description: "No SBOM generation",
 			Why:         "Without SBOM, you cannot track which components are in production for incident response",
 			Pattern:     regexp.MustCompile(`(?i)(sbom|cyclonedx|spdx|syft|bom)`),
@@ -158,7 +158,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Add SBOM generation with Syft in CycloneDX format",
 		},
 		{
-			ID: "R19", Category: SCA, Severity: Medium, Points: 2,
+			ID: "R19", Category: SCA, Severity: Low, Points: 1,
 			Description: "No image signing or verification",
 			Why:         "Unsigned images can be tampered with — supply chain attacks inject malicious code",
 			Pattern:     regexp.MustCompile(`(?i)(cosign|notation|docker\s+trust|content\s+trust|sign|verify)`),
@@ -175,7 +175,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Replace npm install with npm ci",
 		},
 		{
-			ID: "R21", Category: SCA, Severity: Medium, Points: 2,
+			ID: "R21", Category: SCA, Severity: Medium, Points: 1,
 			Description: "No private registry for container images",
 			Why:         "Pulling from Docker Hub in CI exposes you to rate limits, supply chain attacks, and availability issues",
 			Pattern:     regexp.MustCompile(`(?i)(harbor|ecr|gcr|acr|registry\.|ghcr\.io|private.*registry)`),
@@ -183,7 +183,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: PartialFix, FixDesc: "Use private registry (Harbor, ECR, GCR) for base images",
 		},
 		{
-			ID: "R22", Category: SCA, Severity: Medium, Points: 2,
+			ID: "R22", Category: SCA, Severity: Low, Points: 1,
 			Description: "No license compliance scanning",
 			Why:         "Using GPL dependencies in commercial software creates legal liability",
 			Pattern:     regexp.MustCompile(`(?i)(license.*scan|license.*check|fossa|licensee|license-finder|scancode)`),
@@ -201,7 +201,7 @@ func PipelineSecurityRules() []*Rule {
 
 		// === DST — Dynamic Testing / DAST (R24-R27, 10pts) ===
 		{
-			ID: "R24", Category: DST, Severity: High, Points: 3,
+			ID: "R24", Category: DST, Severity: Medium, Points: 1,
 			Description: "No DAST scanning stage",
 			Why:         "SAST finds code issues, but DAST finds runtime issues like auth bypass and SSRF",
 			Pattern:     regexp.MustCompile(`(?i)(zap|zap-baseline|zap-full-scan|nuclei|dastardly|burp|arachni|nikto)`),
@@ -209,7 +209,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Add OWASP ZAP baseline scan in staging environment",
 		},
 		{
-			ID: "R25", Category: DST, Severity: Medium, Points: 2,
+			ID: "R25", Category: DST, Severity: Low, Points: 1,
 			Description: "DAST not running against staging environment",
 			Why:         "DAST against production is dangerous — it can modify data or trigger alerts",
 			Pattern:     regexp.MustCompile(`(?i)(staging|stg|preview|review-app|ephemeral).*(zap|nuclei|dast)|(?i)(zap|nuclei|dast).*(staging|stg|preview)`),
@@ -217,7 +217,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: PartialFix, FixDesc: "Target DAST at staging/preview environment URL",
 		},
 		{
-			ID: "R26", Category: DST, Severity: Medium, Points: 3,
+			ID: "R26", Category: DST, Severity: Low, Points: 1,
 			Description: "No API security testing",
 			Why:         "APIs are the #1 attack surface — OWASP API Top 10 vulnerabilities need specific testing",
 			Pattern:     regexp.MustCompile(`(?i)(zap.*api|postman.*test|dredd|schemathesis|openapi.*scan|api.*fuzz)`),
@@ -225,7 +225,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: PartialFix, FixDesc: "Add API security testing with ZAP API scan or Schemathesis",
 		},
 		{
-			ID: "R27", Category: DST, Severity: Low, Points: 2,
+			ID: "R27", Category: DST, Severity: Low, Points: 1,
 			Description: "No fuzz testing",
 			Why:         "Fuzzing discovers edge cases and crashes that manual testing never finds",
 			Pattern:     regexp.MustCompile(`(?i)(fuzz|go-fuzz|atheris|jazzer|cargo-fuzz|oss-fuzz|hongfuzz)`),
@@ -243,7 +243,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Add when: manual gate before production deployment",
 		},
 		{
-			ID: "R29", Category: DEP, Severity: High, Points: 2,
+			ID: "R29", Category: DEP, Severity: High, Points: 1,
 			Description: "No rollback strategy defined",
 			Why:         "When production deploy fails at 2am, you need instant rollback — not manual kubectl commands",
 			Pattern:     regexp.MustCompile(`(?i)(rollback|undo|revert|previous.*version|argo.*rollout|canary|blue.?green)`),
@@ -251,7 +251,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: PartialFix, FixDesc: "Add rollback job or use ArgoCD/Flux for automatic rollback",
 		},
 		{
-			ID: "R30", Category: DEP, Severity: High, Points: 2,
+			ID: "R30", Category: DEP, Severity: High, Points: 1,
 			Description: "No smoke tests after deployment",
 			Why:         "Deploy succeeds but app is broken — without smoke tests nobody knows until users complain",
 			Pattern:     regexp.MustCompile(`(?i)(smoke|health.*check|readiness|liveness|curl.*health|verify.*deploy|post.*deploy)`),
@@ -259,7 +259,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Add post-deploy smoke test: curl health endpoint",
 		},
 		{
-			ID: "R31", Category: DEP, Severity: Medium, Points: 2,
+			ID: "R31", Category: DEP, Severity: Medium, Points: 1,
 			Description: "No GitOps deployment approach",
 			Why:         "kubectl apply in CI is imperative — GitOps provides audit trail, drift detection, and rollback",
 			Pattern:     regexp.MustCompile(`(?i)(argocd|flux|gitops|kustomize.*apply|helm.*upgrade)`),
@@ -275,15 +275,15 @@ func PipelineSecurityRules() []*Rule {
 			FixType: NoFix, FixDesc: "Use service accounts or OIDC for kubectl authentication",
 		},
 		{
-			ID: "R33", Category: DEP, Severity: Medium, Points: 2,
+			ID: "R33", Category: DEP, Severity: Medium, Points: 1,
 			Description: "No environment separation in pipeline",
 			Why:         "Same pipeline for dev/staging/prod means no progressive delivery or environment-specific config",
-			Pattern:     regexp.MustCompile(`(?i)(environment:\s*(staging|production|dev)|deploy.*stage|deploy.*prod|stages:.*deploy)`),
+			Pattern:     regexp.MustCompile(`(?i)(environment:\s*(staging|production|dev)|name:\s*(staging|production|dev)|deploy[-_]?(prod|stag|dev)|stages:.*deploy)`),
 			Negative:    true, Scope: FileScope, FileTypes: pipelineFiles,
 			FixType: PartialFix, FixDesc: "Define separate environment stages: dev, staging, production",
 		},
 		{
-			ID: "R34", Category: DEP, Severity: Medium, Points: 2,
+			ID: "R34", Category: DEP, Severity: Medium, Points: 1,
 			Description: "No deployment notifications",
 			Why:         "Silent deploys mean team does not know what is in production or when issues started",
 			Pattern:     regexp.MustCompile(`(?i)(slack|teams|webhook|notify|notification|email|discord).*(deploy|release)|(?i)(deploy|release).*(slack|teams|webhook|notify)`),
@@ -291,7 +291,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Add Slack/Teams notification on deploy success and failure",
 		},
 		{
-			ID: "R35", Category: DEP, Severity: Medium, Points: 2,
+			ID: "R35", Category: DEP, Severity: Low, Points: 1,
 			Description: "No progressive delivery strategy",
 			Why:         "All-at-once deploys affect 100% of users instantly — canary/blue-green limits blast radius",
 			Pattern:     regexp.MustCompile(`(?i)(canary|blue.?green|rolling|progressive|flagger|argo.?rollout|traffic.*split)`),
@@ -309,7 +309,7 @@ func PipelineSecurityRules() []*Rule {
 
 		// === GOV — Governance & Compliance (R37-R45, 20pts) ===
 		{
-			ID: "R37", Category: GOV, Severity: High, Points: 3,
+			ID: "R37", Category: GOV, Severity: Medium, Points: 1,
 			Description: "No security results aggregation platform",
 			Why:         "Without DefectDojo or SonarQube dashboard, security findings are scattered across job logs",
 			Pattern:     regexp.MustCompile(`(?i)(defectdojo|import-scan|sonarqube|sonar.*dashboard|security.*dashboard)`),
@@ -317,7 +317,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: PartialFix, FixDesc: "Integrate DefectDojo for centralized vulnerability management",
 		},
 		{
-			ID: "R38", Category: GOV, Severity: Medium, Points: 2,
+			ID: "R38", Category: GOV, Severity: Medium, Points: 1,
 			Description: "No test coverage reporting",
 			Why:         "Without coverage metrics, you cannot enforce minimum test coverage standards",
 			Pattern:     regexp.MustCompile(`(?i)(coverage|codecov|coveralls|--cov|lcov|cobertura|jacoco)`),
@@ -325,7 +325,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Add coverage reporting with codecov or built-in coverage tools",
 		},
 		{
-			ID: "R39", Category: GOV, Severity: Medium, Points: 2,
+			ID: "R39", Category: GOV, Severity: Medium, Points: 1,
 			Description: "No merge request / PR pipeline trigger",
 			Why:         "If pipeline only runs on main branch, feature branch code is never tested before merge",
 			Pattern:     regexp.MustCompile(`(?i)(merge_request|pull_request|on:\s*pull_request|MR|PR|merge.*pipeline)`),
@@ -333,7 +333,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Add merge_request / pull_request pipeline trigger",
 		},
 		{
-			ID: "R40", Category: GOV, Severity: Medium, Points: 2,
+			ID: "R40", Category: GOV, Severity: Medium, Points: 1,
 			Description: "No pipeline timeout configured",
 			Why:         "Runaway pipelines consume CI resources for hours — 1 hung job blocks all runners",
 			Pattern:     regexp.MustCompile(`(?i)(timeout:|timeout-minutes:|timeout\s*\(|time:|default:.*timeout)`),
@@ -341,7 +341,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Add global timeout: 60 minutes",
 		},
 		{
-			ID: "R41", Category: GOV, Severity: Medium, Points: 2,
+			ID: "R41", Category: GOV, Severity: Medium, Points: 1,
 			Description: "No artifact archiving for audit trail",
 			Why:         "Without archived scan reports, you cannot prove compliance during audits",
 			Pattern:     regexp.MustCompile(`(?i)(artifacts:|upload-artifact|archive|reports:)`),
@@ -349,7 +349,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Archive scan reports as pipeline artifacts",
 		},
 		{
-			ID: "R42", Category: GOV, Severity: High, Points: 2,
+			ID: "R42", Category: GOV, Severity: Medium, Points: 1,
 			Description: "Security scans not in dedicated stage",
 			Why:         "Security scans mixed with build/test stages are hard to find, maintain, and enforce",
 			Pattern:     regexp.MustCompile(`(?i)(stage:\s*(security|scan|sast|dast)|security.*stage|stages:.*security)`),
@@ -357,7 +357,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: PartialFix, FixDesc: "Create dedicated security stage in pipeline",
 		},
 		{
-			ID: "R43", Category: GOV, Severity: Low, Points: 2,
+			ID: "R43", Category: GOV, Severity: Low, Points: 1,
 			Description: "No compliance as code framework",
 			Why:         "Manual compliance checks are slow and error-prone — automate with OPA or Conftest",
 			Pattern:     regexp.MustCompile(`(?i)(opa|conftest|open\s*policy|rego|compliance.*check|policy.*check)`),
@@ -365,7 +365,7 @@ func PipelineSecurityRules() []*Rule {
 			FixType: PartialFix, FixDesc: "Add OPA/Conftest policy checks in pipeline",
 		},
 		{
-			ID: "R44", Category: GOV, Severity: Medium, Points: 2,
+			ID: "R44", Category: GOV, Severity: Medium, Points: 1,
 			Description: "No branch protection enforcement in pipeline",
 			Why:         "Pipeline runs on unprotected branches can deploy unauthorized code",
 			Pattern:     regexp.MustCompile(`(?i)(protected|only:\s*-\s*main|only:\s*-\s*master|branches:\s*\[.*main|push:.*branches:.*main)`),

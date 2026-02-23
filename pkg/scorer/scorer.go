@@ -16,16 +16,27 @@ type Score struct {
 
 // Calculate computes security and quality scores from a list of violations.
 // Each score starts at 100 and is reduced by the points of each violation.
+// Severity multipliers ensure critical/high issues have appropriate impact.
 func Calculate(violations []rules.Violation) Score {
 	secPenalty := 0
 	qualPenalty := 0
+	hasCritical := false
+	hasHigh := false
 
 	for _, v := range violations {
+		// Apply severity multiplier for realistic scoring
+		points := severityMultiplier(v.Rule.Severity, v.Rule.Points)
 		switch v.Rule.GetScoreType() {
 		case rules.SecurityScore:
-			secPenalty += v.Rule.Points
+			secPenalty += points
 		case rules.QualityScore:
-			qualPenalty += v.Rule.Points
+			qualPenalty += points
+		}
+		if v.Rule.Severity == rules.Critical {
+			hasCritical = true
+		}
+		if v.Rule.Severity == rules.High {
+			hasHigh = true
 		}
 	}
 
@@ -39,13 +50,38 @@ func Calculate(violations []rules.Violation) Score {
 		qualScore = 0
 	}
 
+	secLevel := GetMaturityLevel(secScore)
+	qualLevel := GetMaturityLevel(qualScore)
+
+	// Cap maturity level based on severity of findings
+	// Critical findings → max Level 2 (Developing)
+	// High findings → max Level 3 (Defined)
+	if hasCritical && secLevel.Level > 2 {
+		secLevel = rules.MaturityLevel{Level: 2, Name: "Developing", Tag: "Level 2"}
+	} else if hasHigh && secLevel.Level > 3 {
+		secLevel = rules.MaturityLevel{Level: 3, Name: "Defined", Tag: "Level 3"}
+	}
+
 	return Score{
 		SecurityScore: secScore,
 		QualityScore:  qualScore,
-		SecurityLevel: GetMaturityLevel(secScore),
-		QualityLevel:  GetMaturityLevel(qualScore),
+		SecurityLevel: secLevel,
+		QualityLevel:  qualLevel,
 		SecurityMax:   100,
 		QualityMax:    100,
+	}
+}
+
+// severityMultiplier scales points based on severity for realistic scoring.
+// Critical and High have stronger impact; Medium/Low/Info use base points.
+func severityMultiplier(sev rules.Severity, base int) int {
+	switch sev {
+	case rules.Critical:
+		return base * 3 // e.g. 3pts → 9pts
+	case rules.High:
+		return base * 2 // e.g. 2pts → 4pts
+	default:
+		return base // Medium/Low/Info stay as-is
 	}
 }
 

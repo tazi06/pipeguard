@@ -9,7 +9,7 @@ func JenkinsRules() []*Rule {
 	return []*Rule{
 		// === Credentials & Secrets (J01-J05) ===
 		{
-			ID: "J01", Category: JEN, Severity: Critical, Points: 4,
+			ID: "J01", Category: JEN, Severity: Critical, Points: 3,
 			Description: "Shell command with Groovy string interpolation",
 			Why:         "sh \"${var}\" exposes credentials to process listing and shell history — use single quotes",
 			Pattern:     regexp.MustCompile(`sh\s+"[^"]*\$\{`),
@@ -17,7 +17,7 @@ func JenkinsRules() []*Rule {
 			FixType: FullFix, FixDesc: "Change sh \"${var}\" to sh '${var}' with withCredentials block",
 		},
 		{
-			ID: "J02", Category: JEN, Severity: Critical, Points: 4,
+			ID: "J02", Category: JEN, Severity: Critical, Points: 3,
 			Description: "No withCredentials block for secret usage",
 			Why:         "Direct env variable access for secrets bypasses Jenkins credential masking",
 			Pattern:     regexp.MustCompile(`(?i)withCredentials`),
@@ -51,7 +51,7 @@ func JenkinsRules() []*Rule {
 
 		// === Sandbox & Code Execution (J06-J10) ===
 		{
-			ID: "J06", Category: JEN, Severity: Critical, Points: 4,
+			ID: "J06", Category: JEN, Severity: Critical, Points: 3,
 			Description: "Groovy sandbox bypass attempt",
 			Why:         "@Grab, evaluate(), GroovyShell allow arbitrary code execution outside sandbox",
 			Pattern:     regexp.MustCompile(`(?i)(@Grab|@GrabResolver|evaluate\s*\(|Eval\.me|GroovyShell|new\s+File\s*\()`),
@@ -93,7 +93,7 @@ func JenkinsRules() []*Rule {
 
 		// === Shared Libraries & Dependencies (J11-J15) ===
 		{
-			ID: "J11", Category: JEN, Severity: Critical, Points: 4,
+			ID: "J11", Category: JEN, Severity: Critical, Points: 3,
 			Description: "Shared library loaded without version pinning",
 			Why:         "Library@main means any push to main changes all pipelines instantly — supply chain risk",
 			Pattern:     regexp.MustCompile(`@Library\s*\(\s*['"][^'"]*@(main|master|latest)['"]\s*\)`),
@@ -135,7 +135,7 @@ func JenkinsRules() []*Rule {
 
 		// === Security Controls (J16-J20) ===
 		{
-			ID: "J16", Category: JEN, Severity: Critical, Points: 4,
+			ID: "J16", Category: JEN, Severity: Critical, Points: 3,
 			Description: "bat command with string interpolation",
 			Why:         "Same risk as sh with interpolation — credentials exposed in Windows batch commands",
 			Pattern:     regexp.MustCompile(`bat\s+"[^"]*\$\{`),
@@ -220,7 +220,7 @@ func JenkinsRules() []*Rule {
 
 		// === Advanced Security (J26-J30) ===
 		{
-			ID: "J26", Category: JEN, Severity: High, Points: 4,
+			ID: "J26", Category: JEN, Severity: High, Points: 3,
 			Description: "Using script block in declarative pipeline",
 			Why:         "script {} blocks bypass declarative safety — prefer declarative steps",
 			Pattern:     regexp.MustCompile(`(?i)script\s*\{`),

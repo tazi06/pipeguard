@@ -10,7 +10,7 @@ func QualityRules() []*Rule {
 	return []*Rule{
 		// === Versioning & Reproducibility (Q01-Q05) ===
 		{
-			ID: "Q01", Category: PQL, Severity: High, Points: 3,
+			ID: "Q01", Category: PQL, Severity: High, Points: 2,
 			Description: "Docker image without version tag",
 			Why:         "image: node pulls :latest implicitly — different versions across builds",
 			Pattern:     regexp.MustCompile(`(?i)image:\s+['"]?([a-zA-Z0-9._/-]+)\s*$`),
@@ -42,7 +42,7 @@ func QualityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Pin to specific version: uses: actions/checkout@v4",
 		},
 		{
-			ID: "Q05", Category: PQL, Severity: Medium, Points: 3,
+			ID: "Q05", Category: PQL, Severity: Medium, Points: 2,
 			Description: "No caching configured for dependencies",
 			Why:         "Without cache, every pipeline downloads all dependencies from scratch — slow and wasteful",
 			Pattern:     regexp.MustCompile(`(?i)(cache:|actions/cache|save_cache|restore_cache|cache\s*:.*key)`),
@@ -52,7 +52,7 @@ func QualityRules() []*Rule {
 
 		// === Job Dependencies & Flow (Q06-Q10) ===
 		{
-			ID: "Q06", Category: PQL, Severity: Medium, Points: 3,
+			ID: "Q06", Category: PQL, Severity: Medium, Points: 1,
 			Description: "No job dependency chain defined",
 			Why:         "Without needs/depends_on, jobs run sequentially by stage — no parallel optimization",
 			Pattern:     regexp.MustCompile(`(?i)(needs:|depends_on:|needs:\s*\[)`),
@@ -60,7 +60,7 @@ func QualityRules() []*Rule {
 			FixType: PartialFix, FixDesc: "Add needs: [job_name] for proper dependency chains",
 		},
 		{
-			ID: "Q07", Category: PQL, Severity: Medium, Points: 2,
+			ID: "Q07", Category: PQL, Severity: Medium, Points: 1,
 			Description: "Artifacts without expire_in or retention",
 			Why:         "Artifacts without expiry accumulate forever — CI storage exhausted in months",
 			Pattern:     regexp.MustCompile(`(?i)(expire_in:|retention-days:)`),
@@ -94,7 +94,7 @@ func QualityRules() []*Rule {
 
 		// === Performance & Optimization (Q11-Q15) ===
 		{
-			ID: "Q11", Category: PQL, Severity: Medium, Points: 3,
+			ID: "Q11", Category: PQL, Severity: Medium, Points: 1,
 			Description: "No interruptible flag on non-critical jobs",
 			Why:         "Old pipeline keeps running when new commit pushed — wasting 2x CI resources",
 			Pattern:     regexp.MustCompile(`(?i)interruptible:\s*true`),
@@ -110,7 +110,7 @@ func QualityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Add concurrency: group with cancel-in-progress: true",
 		},
 		{
-			ID: "Q13", Category: PQL, Severity: Medium, Points: 3,
+			ID: "Q13", Category: PQL, Severity: Medium, Points: 1,
 			Description: "No resource group for deployment jobs",
 			Why:         "Concurrent deploys to same environment cause race conditions",
 			Pattern:     regexp.MustCompile(`(?i)(resource_group:|concurrency:.*deploy)`),
@@ -126,17 +126,17 @@ func QualityRules() []*Rule {
 			FixType: PartialFix, FixDesc: "Use parallel: or matrix strategy for test splitting",
 		},
 		{
-			ID: "Q15", Category: PQL, Severity: Low, Points: 2,
-			Description: "Pipeline exceeds 15 stages",
-			Why:         "More than 15 stages indicates pipeline complexity — consider splitting or simplifying",
-			Pattern:     regexp.MustCompile(`(?i)stages:`),
-			Negative:    true, Scope: FileScope, FileTypes: []FileType{GitLabCI},
-			FixType: NoFix, FixDesc: "Consolidate stages — aim for 5-8 stages maximum",
+			ID: "Q15", Category: PQL, Severity: Low, Points: 1,
+			Description: "No scheduled pipeline for periodic security scans",
+			Why:         "Without scheduled runs, security scans only happen on commits — missed CVEs between releases",
+			Pattern:     regexp.MustCompile(`(?i)(schedules?|cron:|schedule:|on:.*schedule)`),
+			Negative:    true, Scope: FileScope, FileTypes: pipelineFiles,
+			FixType: FullFix, FixDesc: "Add scheduled pipeline trigger for nightly/weekly security scans",
 		},
 
 		// === DRY & Maintainability (Q16-Q20) ===
 		{
-			ID: "Q16", Category: PQL, Severity: Medium, Points: 3,
+			ID: "Q16", Category: PQL, Severity: Medium, Points: 1,
 			Description: "No template/extends usage for DRY",
 			Why:         "Copy-pasted config across 10 jobs — one change requires editing 10 places",
 			Pattern:     regexp.MustCompile(`(?i)(extends:|!reference|include:|uses:.*reusable|&\w+|<<:\s*\*)`),
@@ -160,7 +160,7 @@ func QualityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Use CI/CD variables: $DEPLOY_URL instead of hardcoded IPs",
 		},
 		{
-			ID: "Q19", Category: PQL, Severity: High, Points: 3,
+			ID: "Q19", Category: PQL, Severity: High, Points: 2,
 			Description: "Script without proper error handling",
 			Why:         "Without set -e, failed commands are silently ignored — pipeline reports success on failure",
 			Pattern:     regexp.MustCompile(`(?i)(set\s+-e|set\s+-eo\s*pipefail|#!/bin/bash\s+-e|bash\s+-e)`),
@@ -168,7 +168,7 @@ func QualityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Add set -eo pipefail at start of multi-line scripts",
 		},
 		{
-			ID: "Q20", Category: PQL, Severity: Medium, Points: 2,
+			ID: "Q20", Category: PQL, Severity: Medium, Points: 1,
 			Description: "No runner/tag specification",
 			Why:         "Without tags, jobs run on any available runner — including misconfigured or slow ones",
 			Pattern:     regexp.MustCompile(`(?i)(tags:|runs-on:|agent\s*\{.*label)`),
@@ -178,7 +178,7 @@ func QualityRules() []*Rule {
 
 		// === Cleanup & Lifecycle (Q21-Q25) ===
 		{
-			ID: "Q21", Category: PQL, Severity: Medium, Points: 2,
+			ID: "Q21", Category: PQL, Severity: Medium, Points: 1,
 			Description: "No after_script or post-job cleanup",
 			Why:         "Without cleanup, temporary files and credentials persist on runner between builds",
 			Pattern:     regexp.MustCompile(`(?i)(after_script:|post:|cleanup:|post\s*\{)`),
@@ -186,7 +186,7 @@ func QualityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Add after_script: to clean up temp files and credentials",
 		},
 		{
-			ID: "Q22", Category: PQL, Severity: Medium, Points: 3,
+			ID: "Q22", Category: PQL, Severity: Medium, Points: 2,
 			Description: "allow_failure on critical security jobs",
 			Why:         "Security scans with allow_failure: true never block deployment — defeats the purpose",
 			Pattern:     regexp.MustCompile(`(?is)(sast|dast|secret|scan|security|trivy|grype|semgrep).*allow_failure:\s*true`),
@@ -194,7 +194,7 @@ func QualityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Set allow_failure: false on all security-related jobs",
 		},
 		{
-			ID: "Q23", Category: PQL, Severity: Medium, Points: 2,
+			ID: "Q23", Category: PQL, Severity: Medium, Points: 1,
 			Description: "No test coverage reporting in pipeline",
 			Why:         "Without coverage tracking, test quality degrades over time without anyone noticing",
 			Pattern:     regexp.MustCompile(`(?i)(coverage:\s*['"]|codecov|coveralls|coverage-report|--coverage)`),
@@ -210,7 +210,7 @@ func QualityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Remove echo/print statements that reference secret variables",
 		},
 		{
-			ID: "Q25", Category: PQL, Severity: Medium, Points: 2,
+			ID: "Q25", Category: PQL, Severity: Medium, Points: 1,
 			Description: "No variable scoping (global variables everywhere)",
 			Why:         "Global variables leak across jobs — a debug variable in one job affects another",
 			Pattern:     regexp.MustCompile(`(?i)variables:\s*\n\s+\w+:`),
@@ -220,7 +220,7 @@ func QualityRules() []*Rule {
 
 		// === Triggers & Workflow Control (Q26-Q30) ===
 		{
-			ID: "Q26", Category: PQL, Severity: Medium, Points: 3,
+			ID: "Q26", Category: PQL, Severity: Medium, Points: 1,
 			Description: "No path-based trigger filtering",
 			Why:         "README.md change triggers full 30-min build pipeline — total waste of CI resources",
 			Pattern:     regexp.MustCompile(`(?i)(changes:|paths:|paths-filter|on:.*push:.*paths:)`),
@@ -228,7 +228,7 @@ func QualityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Add path filters: only run build when src/ files change",
 		},
 		{
-			ID: "Q27", Category: PQL, Severity: Medium, Points: 3,
+			ID: "Q27", Category: PQL, Severity: Medium, Points: 1,
 			Description: "Per-job timeout not configured",
 			Why:         "Global timeout only — one hung DAST scan eats the entire pipeline budget",
 			Pattern:     regexp.MustCompile(`(?i)(timeout:\s*\d|timeout-minutes:)`),
@@ -244,7 +244,7 @@ func QualityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Be specific: artifacts: paths: [\"dist/\", \"reports/\"]",
 		},
 		{
-			ID: "Q29", Category: PQL, Severity: Medium, Points: 3,
+			ID: "Q29", Category: PQL, Severity: Medium, Points: 1,
 			Description: "No YAML anchors or extends for duplicated config",
 			Why:         "Same image/tags/before_script in 10 jobs — one change needs editing everywhere",
 			Pattern:     regexp.MustCompile(`(?i)(&\w+|<<:\s*\*\w+|extends:\s+\.)`),
@@ -252,10 +252,10 @@ func QualityRules() []*Rule {
 			FixType: PartialFix, FixDesc: "Use .template: + extends: .template for shared configuration",
 		},
 		{
-			ID: "Q30", Category: PQL, Severity: Medium, Points: 3,
+			ID: "Q30", Category: PQL, Severity: Medium, Points: 1,
 			Description: "Manual trigger on non-deploy stages",
 			Why:         "when: manual on test/scan stages — developers skip them, bugs reach production",
-			Pattern:     regexp.MustCompile(`(?is)(test|scan|lint|build|sast).*when:\s*manual`),
+			Pattern:     regexp.MustCompile(`(?is)(test|scan|lint|sast|quality).{0,200}when:\s*manual`),
 			Negative:    false, Scope: FileScope, FileTypes: pipelineFiles,
 			FixType: FullFix, FixDesc: "Remove when: manual from all non-production-deploy stages",
 		},
@@ -270,7 +270,7 @@ func QualityRules() []*Rule {
 			FixType: PartialFix, FixDesc: "Track pipeline duration and alert if exceeding 30 minutes",
 		},
 		{
-			ID: "Q32", Category: PQL, Severity: High, Points: 4,
+			ID: "Q32", Category: PQL, Severity: High, Points: 3,
 			Description: "Docker-in-Docker without TLS or pinned version",
 			Why:         "DinD without TLS — anyone on network controls your Docker daemon. :latest = non-reproducible",
 			Pattern:     regexp.MustCompile(`(?i)docker:(latest|dind)\b`),
@@ -279,7 +279,7 @@ func QualityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Use docker:24.0-dind with DOCKER_TLS_CERTDIR: /certs",
 		},
 		{
-			ID: "Q33", Category: PQL, Severity: Medium, Points: 3,
+			ID: "Q33", Category: PQL, Severity: Medium, Points: 1,
 			Description: "No YAML validation or linting in pipeline",
 			Why:         "Push broken YAML — pipeline does not start — 5 min to realize, fix, push again",
 			Pattern:     regexp.MustCompile(`(?i)(yamllint|gitlab-ci-lint|actionlint|pre-commit.*yaml)`),
@@ -287,7 +287,7 @@ func QualityRules() []*Rule {
 			FixType: FullFix, FixDesc: "Add yamllint or actionlint as pre-commit hook or early pipeline stage",
 		},
 		{
-			ID: "Q34", Category: PQL, Severity: Medium, Points: 3,
+			ID: "Q34", Category: PQL, Severity: Medium, Points: 1,
 			Description: "No notification on pipeline status change",
 			Why:         "Pipeline fixed at 2am — nobody knows — team still debugging broken CI in morning",
 			Pattern:     regexp.MustCompile(`(?i)(slack|teams|webhook|notify|notification|discord|email).*(pipeline|build|deploy|status)`),

@@ -18,25 +18,31 @@ func TestCalculateEmptyViolations(t *testing.T) {
 
 func TestCalculateSecurityDeduction(t *testing.T) {
 	violations := []rules.Violation{
-		{Rule: &rules.Rule{Category: rules.SEC, Points: 5}},
-		{Rule: &rules.Rule{Category: rules.SEC, Points: 3}},
+		{Rule: &rules.Rule{Category: rules.SEC, Severity: rules.Critical, Points: 5}},
+		{Rule: &rules.Rule{Category: rules.SEC, Severity: rules.High, Points: 3}},
 	}
 
+	// Critical: 5*3=15, High: 3*2=6 → penalty 21 → score 79
 	score := Calculate(violations)
-	if score.SecurityScore != 92 {
-		t.Errorf("expected security score 92 (100-5-3), got %d", score.SecurityScore)
+	if score.SecurityScore != 79 {
+		t.Errorf("expected security score 79 (100-15-6), got %d", score.SecurityScore)
 	}
 	if score.QualityScore != 100 {
 		t.Errorf("expected quality score 100 (no PQL violations), got %d", score.QualityScore)
+	}
+	// Critical present → max Level 2
+	if score.SecurityLevel.Level != 2 {
+		t.Errorf("expected security level 2 (capped by critical), got %d", score.SecurityLevel.Level)
 	}
 }
 
 func TestCalculateQualityDeduction(t *testing.T) {
 	violations := []rules.Violation{
-		{Rule: &rules.Rule{Category: rules.PQL, Points: 3}},
-		{Rule: &rules.Rule{Category: rules.PQL, Points: 2}},
+		{Rule: &rules.Rule{Category: rules.PQL, Severity: rules.Medium, Points: 3}},
+		{Rule: &rules.Rule{Category: rules.PQL, Severity: rules.Low, Points: 2}},
 	}
 
+	// Medium: 3*1=3, Low: 2*1=2 → penalty 5 → score 95
 	score := Calculate(violations)
 	if score.SecurityScore != 100 {
 		t.Errorf("expected security score 100, got %d", score.SecurityScore)
