@@ -158,7 +158,7 @@ func (s *SARIFFormatter) FormatReport(results []FileResult) {
 
 	enc := json.NewEncoder(s.Writer)
 	enc.SetIndent("", "  ")
-	enc.Encode(report)
+	_ = enc.Encode(report)
 }
 
 // sarifLevel converts PipeGuard severity to SARIF level.

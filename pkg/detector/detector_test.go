@@ -9,7 +9,7 @@ import (
 func TestDetectGitLabCI(t *testing.T) {
 	dir := t.TempDir()
 	f := filepath.Join(dir, ".gitlab-ci.yml")
-	os.WriteFile(f, []byte("stages:\n  - build\n"), 0644)
+	_ = os.WriteFile(f, []byte("stages:\n  - build\n"), 0644)
 
 	files, err := Detect(dir)
 	if err != nil {
@@ -27,7 +27,7 @@ func TestDetectGitLabCI(t *testing.T) {
 func TestDetectDockerfile(t *testing.T) {
 	dir := t.TempDir()
 	f := filepath.Join(dir, "Dockerfile")
-	os.WriteFile(f, []byte("FROM alpine:3.18\n"), 0644)
+	_ = os.WriteFile(f, []byte("FROM alpine:3.18\n"), 0644)
 
 	files, err := Detect(dir)
 	if err != nil {
@@ -45,7 +45,7 @@ func TestDetectDockerfile(t *testing.T) {
 func TestDetectJenkinsfile(t *testing.T) {
 	dir := t.TempDir()
 	f := filepath.Join(dir, "Jenkinsfile")
-	os.WriteFile(f, []byte("pipeline { agent any }\n"), 0644)
+	_ = os.WriteFile(f, []byte("pipeline { agent any }\n"), 0644)
 
 	files, err := Detect(dir)
 	if err != nil {
@@ -63,9 +63,9 @@ func TestDetectJenkinsfile(t *testing.T) {
 func TestDetectGitHubActions(t *testing.T) {
 	dir := t.TempDir()
 	ghDir := filepath.Join(dir, ".github", "workflows")
-	os.MkdirAll(ghDir, 0755)
+	_ = os.MkdirAll(ghDir, 0755)
 	f := filepath.Join(ghDir, "ci.yml")
-	os.WriteFile(f, []byte("name: CI\non: push\n"), 0644)
+	_ = os.WriteFile(f, []byte("name: CI\non: push\n"), 0644)
 
 	files, err := Detect(dir)
 	if err != nil {
@@ -83,8 +83,8 @@ func TestDetectGitHubActions(t *testing.T) {
 func TestDetectSkipsGitDir(t *testing.T) {
 	dir := t.TempDir()
 	gitDir := filepath.Join(dir, ".git")
-	os.MkdirAll(gitDir, 0755)
-	os.WriteFile(filepath.Join(gitDir, "Dockerfile"), []byte("FROM alpine\n"), 0644)
+	_ = os.MkdirAll(gitDir, 0755)
+	_ = os.WriteFile(filepath.Join(gitDir, "Dockerfile"), []byte("FROM alpine\n"), 0644)
 
 	files, err := Detect(dir)
 	if err != nil {

@@ -129,7 +129,7 @@ func (j *JSONFormatter) FormatReport(results []FileResult) {
 
 	enc := json.NewEncoder(j.Writer)
 	enc.SetIndent("", "  ")
-	enc.Encode(report)
+	_ = enc.Encode(report)
 }
 
 // FormatSingle outputs results for a single check (used by other tools).
