@@ -1,5 +1,4 @@
 # PipeGuard — 145 Security & Quality Rules
-### Kol rule extracted mn DEVSECOPS_ZERO_TO_HERO.md + ATTACKS.md + Jenkins + Dockerfile + Pipeline Best Practices.
 
 ---
 
@@ -47,7 +46,7 @@ TOTAL (Quality)    100         35 rules   ← ALL pipeline types
 
 # SEC — Secret Management (15 pts)
 
-> Source: Stage 1 (GitLeaks + TruffleHog) — ATTACKS.md Category 1
+> Source: Stage 1 (GitLeaks + TruffleHog) 
 
 ---
 
@@ -139,7 +138,7 @@ Fix:         Integrate HashiCorp Vault or use CI/CD platform's secret management
 
 # SAS — Static Analysis / SAST (15 pts)
 
-> Source: Stage 2 (Semgrep + njsscan + gosec + Bandit) — ATTACKS.md Category 2
+> Source: Stage 2 (Semgrep + njsscan + gosec + Bandit) — 
 
 ---
 
@@ -705,7 +704,7 @@ Fix:         Set job-level timeout: timeout: 30 minutes for scanning jobs, 5 min
 
 # JEN — Jenkinsfile Security Rules (100 pts)
 
-> Jenkinsfile = Groovy code. Kayn 7ajat khtarin bzzaf li ma kaynin f GitLab CI / GitHub Actions.
+> Jenkinsfile = Groovy code. :).
 
 ---
 
@@ -1075,7 +1074,7 @@ Fix:         Use withCredentials to inject secrets as env vars. If file needed, 
 
 # DOC — Dockerfile Security Rules (100 pts)
 
-> PipeGuard scans Dockerfile for security misconfigurations li most developers ma kayb9awich fiha.
+> PipeGuard scans Dockerfile for security misconfigurations .
 
 ---
 
@@ -1565,7 +1564,6 @@ Fix:         Multi-stage: build in full image, copy only binary+deps to minimal 
 
 # PQL — Pipeline Quality & Reliability (100 pts)
 
-> Mashi ghir security — pipeline khasso ykhdm mezian! Had rules kay-checko errors, anti-patterns, performance, w stability.
 > Applicable to: .gitlab-ci.yml, GitHub Actions, AND Jenkinsfile (where noted).
 
 ---
@@ -2214,4 +2212,4 @@ Dockerfile (100 pts):                     Q21  HIGH      4   (no inline > 10 lin
 
 ---
 
-> **145 rules. 9 categories. 3 file types. Dual scoring: Security + Quality. 40 Dockerfile best practices. 35 pipeline quality checks. Kol pipeline kay-akhod 2 scores — mashi ghir "safe wla la" — PipeGuard kaygol lik wash SAFE, wash MZIAN, w wash OPTIMIZED!**
+> **145 rules. 9 categories. 3 file types. Dual scoring: Security + Quality. 40 Dockerfile best practices. 35 pipeline quality checks. **
