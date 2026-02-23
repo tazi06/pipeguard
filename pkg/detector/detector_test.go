@@ -112,7 +112,7 @@ func TestDetectEmptyDir(t *testing.T) {
 func TestDetectSingleFile(t *testing.T) {
 	dir := t.TempDir()
 	f := filepath.Join(dir, "Dockerfile")
-	os.WriteFile(f, []byte("FROM alpine:3.18\n"), 0644)
+	_ = os.WriteFile(f, []byte("FROM alpine:3.18\n"), 0644)
 
 	files, err := Detect(f)
 	if err != nil {
@@ -126,9 +126,9 @@ func TestDetectSingleFile(t *testing.T) {
 
 func TestDetectMultipleFiles(t *testing.T) {
 	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, ".gitlab-ci.yml"), []byte("stages:\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "Dockerfile"), []byte("FROM alpine\n"), 0644)
-	os.WriteFile(filepath.Join(dir, "Jenkinsfile"), []byte("pipeline {}\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, ".gitlab-ci.yml"), []byte("stages:\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "Dockerfile"), []byte("FROM alpine\n"), 0644)
+	_ = os.WriteFile(filepath.Join(dir, "Jenkinsfile"), []byte("pipeline {}\n"), 0644)
 
 	files, err := Detect(dir)
 	if err != nil {
