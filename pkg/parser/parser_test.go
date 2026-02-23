@@ -12,7 +12,7 @@ func TestParseDockerfile(t *testing.T) {
 	dir := t.TempDir()
 	content := "FROM alpine:3.18\nRUN apk add curl\nCMD [\"app\"]\n"
 	f := filepath.Join(dir, "Dockerfile")
-	os.WriteFile(f, []byte(content), 0644)
+	_ = os.WriteFile(f, []byte(content), 0644)
 
 	parsed, err := Parse(f, rules.DockerfileT)
 	if err != nil {
@@ -43,7 +43,7 @@ func TestParseDockerfile(t *testing.T) {
 func TestParseEmptyFile(t *testing.T) {
 	dir := t.TempDir()
 	f := filepath.Join(dir, "Dockerfile")
-	os.WriteFile(f, []byte(""), 0644)
+	_ = os.WriteFile(f, []byte(""), 0644)
 
 	parsed, err := Parse(f, rules.DockerfileT)
 	if err != nil {
@@ -65,7 +65,7 @@ func TestParseFileNotFound(t *testing.T) {
 func TestParseLinesAreTrimmed(t *testing.T) {
 	dir := t.TempDir()
 	f := filepath.Join(dir, ".gitlab-ci.yml")
-	os.WriteFile(f, []byte("  stages:\n    - build\n"), 0644)
+	_ = os.WriteFile(f, []byte("  stages:\n    - build\n"), 0644)
 
 	parsed, err := Parse(f, rules.GitLabCI)
 	if err != nil {
