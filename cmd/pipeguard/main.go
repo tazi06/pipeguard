@@ -34,6 +34,9 @@ func main() {
 		Short: "Pipeline Security & Quality Scanner",
 		Long:  "PipeGuard scans your CI/CD pipelines, Dockerfiles, and Jenkinsfiles\nfor security vulnerabilities and quality issues.\n\n145 built-in rules | Deterministic auto-fix | Zero network\nhttps://pipeguard.dev",
 		Version: version,
+		CompletionOptions: cobra.CompletionOptions{
+			DisableDefaultCmd: true,
+		},
 	}
 
 	scanCmd := &cobra.Command{
@@ -172,9 +175,11 @@ func runScan(cmd *cobra.Command, args []string) error {
 	case "sarif":
 		formatter := output.NewSARIFFormatter(writer)
 		formatter.FormatReport(results)
-	default:
+	case "terminal", "":
 		formatter := output.NewTerminalFormatter(writer, fixFlag)
 		formatter.FormatReport(results)
+	default:
+		return fmt.Errorf("unsupported format: %s (use: terminal, json, sarif)", formatFlag)
 	}
 
 	// Exit code: non-zero if critical or high violations found

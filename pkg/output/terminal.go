@@ -13,7 +13,7 @@ const version = "0.1.0"
 
 // TerminalFormatter outputs colored, human-readable scan results.
 type TerminalFormatter struct {
-	Writer io.Writer
+	Writer  io.Writer
 	ShowFix bool
 }
 
@@ -27,8 +27,8 @@ func (t *TerminalFormatter) FormatReport(results []FileResult) {
 	t.printBanner()
 
 	if len(results) == 0 {
-		fmt.Fprintf(t.Writer, "\n%sNo scannable files found.%s\n", Gray, Reset)
-		fmt.Fprintf(t.Writer, "%sSupported: .gitlab-ci.yml, GitHub Actions, Jenkinsfile, Dockerfile%s\n\n", Gray, Reset)
+		fmt.Fprintf(t.Writer, "\n  %sNo scannable files found.%s\n", Gray, Reset)
+		fmt.Fprintf(t.Writer, "  %sSupported: .gitlab-ci.yml, GitHub Actions, Jenkinsfile, Dockerfile%s\n\n", Gray, Reset)
 		return
 	}
 
@@ -60,89 +60,110 @@ func (t *TerminalFormatter) FormatReport(results []FileResult) {
 
 // FileResult holds output data for a single scanned file.
 type FileResult struct {
-	Path       string
-	FileType   rules.FileType
-	Violations []rules.Violation
-	Score      scorer.Score
+	Path         string
+	FileType     rules.FileType
+	Violations   []rules.Violation
+	Score        scorer.Score
 	FixableCount int
 }
 
 func (t *TerminalFormatter) printBanner() {
-	separator := strings.Repeat("=", 68)
-	fmt.Fprintf(t.Writer, "\n%s%sPIPEGUARD v%s%s — Pipeline Security & Quality Scanner by yhakkache\n",
-		BoldBlue, Bold, version, Reset)
-	fmt.Fprintf(t.Writer, "%s%s%s\n", Gray, separator, Reset)
+	line := strings.Repeat("\u2500", 65)
+	fmt.Fprintf(t.Writer, "\n")
+	fmt.Fprintf(t.Writer, "  %s%s\u250c%s\u2510%s\n", BoldBlue, Bold, line, Reset)
+	fmt.Fprintf(t.Writer, "  %s%s\u2502%s  %s%sPIPEGUARD v%s%s  %s\u2014 Pipeline Security & Quality Scanner%s       %s%s\u2502%s\n",
+		BoldBlue, Bold, Reset, BoldBlue, Bold, version, Reset, Gray, Reset, BoldBlue, Bold, Reset)
+	fmt.Fprintf(t.Writer, "  %s%s\u2502%s  %sby yhakkache \u2022 pipeguard.dev%s                                  %s%s\u2502%s\n",
+		BoldBlue, Bold, Reset, Gray, Reset, BoldBlue, Bold, Reset)
+	fmt.Fprintf(t.Writer, "  %s%s\u2514%s\u2518%s\n", BoldBlue, Bold, line, Reset)
 }
 
 func (t *TerminalFormatter) printFileResult(result FileResult) {
-	fmt.Fprintf(t.Writer, "\n%s[SCAN]%s %s%s%s", BoldBlue, Reset, Bold, result.Path, Reset)
+	fmt.Fprintf(t.Writer, "\n  %s%s\u250c\u2500 SCAN \u2500\u2500%s %s%s%s", BoldBlue, Bold, Reset, Bold, result.Path, Reset)
 
 	if len(result.Violations) == 0 {
-		fmt.Fprintf(t.Writer, " %s(no violations)%s\n", BoldGreen, Reset)
+		fmt.Fprintf(t.Writer, "  %s\u2713 no violations%s\n", BoldGreen, Reset)
 		return
 	}
 
-	fmt.Fprintf(t.Writer, " %s(%d violations found)%s\n\n",
-		BoldRed, len(result.Violations), Reset)
+	fmt.Fprintf(t.Writer, "  %s\u2717 %d violations%s\n", BoldRed, len(result.Violations), Reset)
+	fmt.Fprintf(t.Writer, "  %s%s\u2502%s\n", BoldBlue, Bold, Reset)
 
-	for _, v := range result.Violations {
-		t.printViolation(v)
+	for i, v := range result.Violations {
+		t.printViolation(v, i == len(result.Violations)-1)
 	}
 }
 
-func (t *TerminalFormatter) printViolation(v rules.Violation) {
+func (t *TerminalFormatter) printViolation(v rules.Violation, isLast bool) {
 	sevColor := SeverityColor(v.Rule.Severity.String())
-	sevPad := padRight(v.Rule.Severity.String(), 10)
+	sevIcon := severityIcon(v.Rule.Severity)
+	connector := "\u251c"
+	if isLast {
+		connector = "\u2514"
+	}
 
 	// Main violation line
-	fmt.Fprintf(t.Writer, "  %s%-10s%s %s%-5s%s %s",
-		sevColor, sevPad, Reset,
+	fmt.Fprintf(t.Writer, "  %s%s%s%s  %s%s%s  %s%-5s%s  %s",
+		BoldBlue, Bold, connector, Reset,
+		sevColor, sevIcon, Reset,
 		Bold, v.Rule.ID, Reset,
 		v.Rule.Description)
+	fmt.Fprintf(t.Writer, "  %s-%dpts%s\n", Gray, v.Rule.Points, Reset)
 
-	// Points deduction
-	fmt.Fprintf(t.Writer, "%s  -%dpts%s\n", Gray, v.Rule.Points, Reset)
+	// Sub-connector for details
+	subConn := "\u2502"
+	if isLast {
+		subConn = " "
+	}
 
 	// Line info
 	if v.Line > 0 && v.Content != "" {
 		content := v.Content
-		if len(content) > 60 {
-			content = content[:57] + "..."
+		if len(content) > 55 {
+			content = content[:52] + "..."
 		}
-		fmt.Fprintf(t.Writer, "  %s%s Line %d | %s%s\n",
-			strings.Repeat(" ", 10), Gray, v.Line, content, Reset)
+		fmt.Fprintf(t.Writer, "  %s%s%s%s         %sLine %d%s \u2502 %s%s%s\n",
+			BoldBlue, Bold, subConn, Reset,
+			Dim, v.Line, Reset,
+			Gray, content, Reset)
 	}
 
 	// Why
-	fmt.Fprintf(t.Writer, "  %s%s %s%s\n",
-		strings.Repeat(" ", 10), Gray, v.Rule.Why, Reset)
+	fmt.Fprintf(t.Writer, "  %s%s%s%s         %s\u21b3 %s%s\n",
+		BoldBlue, Bold, subConn, Reset,
+		Gray, v.Rule.Why, Reset)
 
 	// Fix suggestion
 	if t.ShowFix && v.Rule.FixDesc != "" {
 		fixColor := Green
-		fixLabel := "Fix"
+		fixLabel := "FIX"
 		if v.Rule.FixType == rules.FullFix {
-			fixLabel = "Fix [FIXABLE]"
+			fixLabel = "FIX [AUTO]"
 		} else if v.Rule.FixType == rules.PartialFix {
-			fixLabel = "Fix [PARTIAL]"
+			fixLabel = "FIX [PARTIAL]"
 		}
-		fmt.Fprintf(t.Writer, "  %s%s %s%s: %s%s\n",
-			strings.Repeat(" ", 10), fixColor, fixLabel, Reset, Green, v.Rule.FixDesc)
-		fmt.Fprintf(t.Writer, "%s", Reset)
+		fmt.Fprintf(t.Writer, "  %s%s%s%s         %s%s:%s %s%s%s\n",
+			BoldBlue, Bold, subConn, Reset,
+			fixColor, fixLabel, Reset,
+			fixColor, v.Rule.FixDesc, Reset)
 	}
 
-	fmt.Fprintln(t.Writer)
+	fmt.Fprintf(t.Writer, "  %s%s%s%s\n", BoldBlue, Bold, subConn, Reset)
 }
 
 func (t *TerminalFormatter) printSummary(results []FileResult, totalViolations, totalFixable, critical, high, medium, low int) {
-	separator := strings.Repeat("-", 68)
-	fmt.Fprintf(t.Writer, "%s%s%s\n", Gray, separator, Reset)
-	fmt.Fprintf(t.Writer, "%s%sRESULTS%s\n", Bold, White, Reset)
-	fmt.Fprintf(t.Writer, "%s%s%s\n", Gray, separator, Reset)
+	line := strings.Repeat("\u2500", 65)
 
-	fmt.Fprintf(t.Writer, "  Files scanned:    %s%d%s\n", Bold, len(results), Reset)
+	fmt.Fprintf(t.Writer, "\n  %s%s\u250c%s\u2510%s\n", Bold, White, line, Reset)
+	fmt.Fprintf(t.Writer, "  %s%s\u2502  %-63s\u2502%s\n", Bold, White, "RESULTS", Reset)
+	fmt.Fprintf(t.Writer, "  %s%s\u251c%s\u2524%s\n", Bold, White, line, Reset)
 
-	violationDetail := fmt.Sprintf("%d", totalViolations)
+	// Files scanned
+	fmt.Fprintf(t.Writer, "  %s%s\u2502%s  %-18s%s%d%s\n",
+		Bold, White, Reset,
+		"Files scanned", Bold, len(results), Reset)
+
+	// Violations with breakdown
 	if totalViolations > 0 {
 		parts := []string{}
 		if critical > 0 {
@@ -157,12 +178,19 @@ func (t *TerminalFormatter) printSummary(results []FileResult, totalViolations, 
 		if low > 0 {
 			parts = append(parts, fmt.Sprintf("%s%d low%s", White, low, Reset))
 		}
-		violationDetail = fmt.Sprintf("%d (%s)", totalViolations, strings.Join(parts, ", "))
+		fmt.Fprintf(t.Writer, "  %s%s\u2502%s  %-18s%s%d%s  (%s)\n",
+			Bold, White, Reset,
+			"Violations", BoldRed, totalViolations, Reset, strings.Join(parts, " \u00b7 "))
+		fmt.Fprintf(t.Writer, "  %s%s\u2502%s  %-18s%s%d/%d%s\n",
+			Bold, White, Reset,
+			"Auto-fixable", Green, totalFixable, totalViolations, Reset)
+	} else {
+		fmt.Fprintf(t.Writer, "  %s%s\u2502%s  %-18s%s%s0 \u2014 All clear!%s\n",
+			Bold, White, Reset,
+			"Violations", BoldGreen, Bold, Reset)
 	}
-	fmt.Fprintf(t.Writer, "  Violations:       %s\n", violationDetail)
-	fmt.Fprintf(t.Writer, "  Auto-fixable:     %s%d/%d%s\n", Green, totalFixable, totalViolations, Reset)
 
-	fmt.Fprintln(t.Writer)
+	fmt.Fprintf(t.Writer, "  %s%s\u251c%s\u2524%s\n", Bold, White, line, Reset)
 
 	// Per-file scores
 	for _, result := range results {
@@ -179,31 +207,59 @@ func (t *TerminalFormatter) printSummary(results []FileResult, totalViolations, 
 		secColor := scoreColor(result.Score.SecurityScore)
 		qualColor := scoreColor(result.Score.QualityScore)
 
+		// File name - truncate if too long
+		displayPath := result.Path
+		if len(displayPath) > 28 {
+			displayPath = "..." + displayPath[len(displayPath)-25:]
+		}
+
 		if hasSecViolations || len(result.Violations) == 0 {
-			fmt.Fprintf(t.Writer, "  %s%-20s%s %sSECURITY  %3d/100%s    %s%s — %s%s\n",
-				Bold, result.Path, Reset,
+			fmt.Fprintf(t.Writer, "  %s%s\u2502%s  %s%-28s%s  %sSEC %3d/100%s  %s%s \u2014 %s%s\n",
+				Bold, White, Reset,
+				Bold, displayPath, Reset,
 				secColor, result.Score.SecurityScore, Reset,
 				secColor, result.Score.SecurityLevel.Tag, result.Score.SecurityLevel.Name, Reset)
 		}
 		if hasQualViolations || len(result.Violations) == 0 {
-			fmt.Fprintf(t.Writer, "  %s%-20s%s %sQUALITY   %3d/100%s    %s%s — %s%s\n",
-				Bold, strings.Repeat(" ", len(result.Path)), Reset,
+			padLen := len(displayPath)
+			if padLen > 28 {
+				padLen = 28
+			}
+			fmt.Fprintf(t.Writer, "  %s%s\u2502%s  %-28s  %sQLT %3d/100%s  %s%s \u2014 %s%s\n",
+				Bold, White, Reset,
+				strings.Repeat(" ", padLen),
 				qualColor, result.Score.QualityScore, Reset,
 				qualColor, result.Score.QualityLevel.Tag, result.Score.QualityLevel.Name, Reset)
 		}
 	}
 
-	fmt.Fprintf(t.Writer, "%s%s%s\n", Gray, separator, Reset)
+	fmt.Fprintf(t.Writer, "  %s%s\u2514%s\u2518%s\n", Bold, White, line, Reset)
 
+	// Hints
 	if totalFixable > 0 && !t.ShowFix {
-		fmt.Fprintf(t.Writer, "  %sRun: pipeguard scan . --fix  to see fix suggestions%s\n", Gray, Reset)
+		fmt.Fprintf(t.Writer, "\n  %sRun: pipeguard scan . --fix  to see fix suggestions%s\n", Gray, Reset)
 	}
 	if t.ShowFix && totalFixable > 0 {
-		fmt.Fprintf(t.Writer, "  %sRun: pipeguard scan . --fix --apply  to auto-fix %d issues%s\n",
+		fmt.Fprintf(t.Writer, "\n  %sRun: pipeguard scan . --fix --apply  to auto-fix %d issues%s\n",
 			Gray, totalFixable, Reset)
 	}
 
 	fmt.Fprintln(t.Writer)
+}
+
+func severityIcon(sev rules.Severity) string {
+	switch sev {
+	case rules.Critical:
+		return "\u25cf"
+	case rules.High:
+		return "\u25b2"
+	case rules.Medium:
+		return "\u25a0"
+	case rules.Low:
+		return "\u25cb"
+	default:
+		return "\u00b7"
+	}
 }
 
 func scoreColor(score int) string {
