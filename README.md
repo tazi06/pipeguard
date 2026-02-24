@@ -254,20 +254,27 @@ pipeguard/
 
 ## Contributing
 
-PipeGuard is licensed under AGPL-3.0. Contributions are welcome.
+We welcome contributions from everyone! PipeGuard is a great project for first-time open source contributors.
+
+### Quick Start
 
 ```bash
-# Clone and build
 git clone https://github.com/tazi06/pipeguard.git
 cd pipeguard
-make build
-
-# Run tests
-make test
-
-# Run against examples
-make scan-examples
+go build -o pipeguard ./cmd/pipeguard/
+go test ./... -count=1
 ```
+
+### Ways to Contribute
+
+-  **Add new rules** — easiest way to contribute (copy an existing rule, change the regex)
+- **Fix bugs** — check [open issues](https://github.com/tazi06/pipeguard/issues)
+-  **Improve docs** — better explanations, examples, typo fixes
+-  **New features** — HTML output, `--category` filter, rule listing command
+
+ **Looking for a starting point?** Check issues labeled [`good first issue`](https://github.com/tazi06/pipeguard/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+
+📖 Read the full **[Contributing Guide](CONTRIBUTING.md)** for coding standards, PR process, and rule-writing guide.
 
 ## License
 
