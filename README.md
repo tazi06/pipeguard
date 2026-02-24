@@ -117,6 +117,25 @@ pipeguard scan . --severity high
 pipeguard scan . --severity critical
 ```
 
+### List Built-in Rules
+
+```bash
+# List all rules (table format)
+pipeguard rules
+
+# Output as JSON (machine-readable)
+pipeguard rules --format json
+
+# Filter by category
+pipeguard rules --category SEC
+
+# Filter by severity
+pipeguard rules --severity critical
+
+# Combine filters
+pipeguard rules --category DOC --severity high
+```
+
 ### Fix Suggestions
 
 ```bash
