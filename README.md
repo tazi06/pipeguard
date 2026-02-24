@@ -115,6 +115,13 @@ pipeguard scan . --severity high
 
 # Show only critical violations
 pipeguard scan . --severity critical
+
+# Show only specific categories (comma-separated)
+pipeguard scan . --category SEC
+pipeguard scan . --category SEC,DEP
+
+# Combine severity and category filters
+pipeguard scan . --category JEN --severity high
 ```
 
 ### Fix Suggestions
