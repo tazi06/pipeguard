@@ -4,9 +4,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -21,18 +23,21 @@ var (
 	version = "0.1.0"
 
 	// CLI flags
-	formatFlag   string
-	severityFlag string
-	fixFlag      bool
-	noColorFlag  bool
-	outputFile   string
+	formatFlag    string
+	severityFlag  string
+	fixFlag       bool
+	noColorFlag   bool
+	outputFile    string
+	rulesFormat   string
+	rulesCategory string
+	rulesSeverity string
 )
 
 func main() {
 	rootCmd := &cobra.Command{
-		Use:   "pipeguard",
-		Short: "Pipeline Security & Quality Scanner",
-		Long:  "PipeGuard scans your CI/CD pipelines, Dockerfiles, and Jenkinsfiles\nfor security vulnerabilities and quality issues.\n\n145 built-in rules | Deterministic auto-fix | Zero network\nhttps://pipeguard.dev",
+		Use:     "pipeguard",
+		Short:   "Pipeline Security & Quality Scanner",
+		Long:    "PipeGuard scans your CI/CD pipelines, Dockerfiles, and Jenkinsfiles\nfor security vulnerabilities and quality issues.\n\n145 built-in rules | Deterministic auto-fix | Zero network\nhttps://pipeguard.dev",
 		Version: version,
 		CompletionOptions: cobra.CompletionOptions{
 			DisableDefaultCmd: true,
@@ -53,7 +58,18 @@ func main() {
 	scanCmd.Flags().BoolVar(&noColorFlag, "no-color", false, "Disable colored output")
 	scanCmd.Flags().StringVarP(&outputFile, "output", "o", "", "Write output to file instead of stdout")
 
+	rulesCmd := &cobra.Command{
+		Use:   "rules",
+		Short: "Lists all the rules",
+		RunE:  getRules,
+	}
+
+	rulesCmd.Flags().StringVarP(&rulesFormat, "format", "f", "table", "Output Format: table,json")
+	rulesCmd.Flags().StringVar(&rulesCategory, "category", "", "Filter by category (SEC, SAS, SCA, DST, DEP, GOV, JEN, DOC, PQL)")
+	rulesCmd.Flags().StringVarP(&rulesSeverity, "severity", "s", "", "Filter by severity (critical, high, medium, low, info)")
+
 	rootCmd.AddCommand(scanCmd)
+	rootCmd.AddCommand(rulesCmd)
 	rootCmd.SetVersionTemplate(fmt.Sprintf("PipeGuard v%s — Pipeline Security & Quality Scanner by yhakkache\n", version))
 
 	if err := rootCmd.Execute(); err != nil {
@@ -192,4 +208,86 @@ func runScan(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+// getRules handles the "rules" command, listing all rules with optional filtering and formatting
+func getRules(cmd *cobra.Command, args []string) error {
+	engine := rules.NewEngine()
+	allRules := engine.Rules()
+	filtered := filteredRules(allRules)
+	switch strings.ToLower(rulesFormat) {
+	case "json":
+		return rulesJSONFormat(filtered)
+	case "table", "":
+		rulesTableFormat(filtered)
+		return nil
+	default:
+		return fmt.Errorf("unsupported format: %s (use: table, json)", rulesFormat)
+	}
+}
+
+// filters rules based on category and severity flags, then sorts by ID
+func filteredRules(all []*rules.Rule) []*rules.Rule {
+	var result []*rules.Rule
+	for _, r := range all {
+		if rulesCategory != "" &&
+			!strings.EqualFold(string(r.Category), rulesCategory) {
+			continue
+		}
+		if rulesSeverity != "" {
+			if !severityMatches(r.Severity, rulesSeverity) {
+				continue
+			}
+		}
+		result = append(result, r)
+	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].ID < result[j].ID
+	})
+	return result
+}
+
+// checks if the rule severity matches the filter
+func severityMatches(ruleSeverity rules.Severity, filter string) bool {
+	switch strings.ToLower(filter) {
+	case "critical":
+		return ruleSeverity == rules.Critical
+	case "high":
+		return ruleSeverity == rules.High
+	case "medium":
+		return ruleSeverity == rules.Medium
+	case "low":
+		return ruleSeverity == rules.Low
+	case "info":
+		return ruleSeverity == rules.Info
+	default:
+		return false
+	}
+}
+
+// prints the all rules in a formatted table
+func rulesTableFormat(rulesList []*rules.Rule) {
+	fmt.Printf("%-6s %-10s %-6s %s\n", "ID", "SEVERITY", "CAT", "DESCRIPTION")
+	fmt.Println(strings.Repeat("-", 80))
+
+	for _, r := range rulesList {
+		fmt.Printf("%-6s %-10s %-6s %s\n",
+			r.ID,
+			r.Severity.String(),
+			r.Category,
+			r.Description,
+		)
+	}
+
+	if len(rulesList) == 0 {
+		fmt.Println("No rules matched the filter.")
+	}
+
+}
+
+// prints the all rules in JSON format
+func rulesJSONFormat(rulesList []*rules.Rule) error {
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", " ")
+	return encoder.Encode(rulesList)
 }
