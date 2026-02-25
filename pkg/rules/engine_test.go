@@ -277,3 +277,67 @@ func TestAllRulesHaveRequiredFields(t *testing.T) {
 		}
 	}
 }
+
+// Test that disabling a rule by ID actually prevents it from being evaluated.
+func TestDisableRules(t *testing.T) {
+	engine := NewEngine()
+
+	originalCount := len(engine.Rules())
+
+	engine.DisableRules([]string{"R03"})
+
+	newCount := len(engine.Rules())
+
+	if newCount >= originalCount {
+		t.Errorf("expected rule count to decrease after disable, got %d -> %d", originalCount, newCount)
+	}
+
+	for _, r := range engine.Rules() {
+		if r.ID == "R03" {
+			t.Error("R03 should have been disabled but is still present")
+		}
+	}
+}
+
+// Test that overriding severity changes the severity of violations and affects filtering.
+func TestDisableRulePreventsViolation(t *testing.T) {
+	engine := NewEngine()
+
+	engine.DisableRules([]string{"R03"})
+
+	lines := []LinePair{
+		{Number: 1, Content: `DB_PASSWORD: "secret123"`},
+	}
+	raw := `DB_PASSWORD: "secret123"`
+
+	violations := engine.Evaluate("test.yml", GitLabCI, lines, raw)
+
+	for _, v := range violations {
+		if v.Rule.ID == "R03" {
+			t.Error("R03 violation detected even though rule was disabled")
+		}
+	}
+}
+
+// Test that overriding severity changes the severity of violations and affects filtering.
+func TestOverrideSeverityAffectsFilter(t *testing.T) {
+	engine := NewEngine()
+
+	engine.OverrideSeverity(map[string]string{
+		"R03": "low",
+	})
+	lines := []LinePair{
+		{Number: 1, Content: `DB_PASSWORD: "secret123"`},
+	}
+	raw := `DB_PASSWORD: "secret123"`
+
+	violations := engine.Evaluate("test.yml", GitLabCI, lines, raw)
+
+	filtered := FilterBySeverity(violations, High)
+
+	for _, v := range filtered {
+		if v.Rule.ID == "R03" {
+			t.Error("R03 should not appear in high filter after severity override")
+		}
+	}
+}

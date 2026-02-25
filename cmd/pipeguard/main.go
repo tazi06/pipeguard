@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/tazi06/pipeguard/pkg/config"
 	"github.com/tazi06/pipeguard/pkg/detector"
 	"github.com/tazi06/pipeguard/pkg/output"
 	"github.com/tazi06/pipeguard/pkg/parser"
@@ -26,13 +27,14 @@ var (
 	fixFlag      bool
 	noColorFlag  bool
 	outputFile   string
+	configPath   string
 )
 
 func main() {
 	rootCmd := &cobra.Command{
-		Use:   "pipeguard",
-		Short: "Pipeline Security & Quality Scanner",
-		Long:  "PipeGuard scans your CI/CD pipelines, Dockerfiles, and Jenkinsfiles\nfor security vulnerabilities and quality issues.\n\n145 built-in rules | Deterministic auto-fix | Zero network\nhttps://pipeguard.dev",
+		Use:     "pipeguard",
+		Short:   "Pipeline Security & Quality Scanner",
+		Long:    "PipeGuard scans your CI/CD pipelines, Dockerfiles, and Jenkinsfiles\nfor security vulnerabilities and quality issues.\n\n145 built-in rules | Deterministic auto-fix | Zero network\nhttps://pipeguard.dev",
 		Version: version,
 		CompletionOptions: cobra.CompletionOptions{
 			DisableDefaultCmd: true,
@@ -52,6 +54,7 @@ func main() {
 	scanCmd.Flags().BoolVar(&fixFlag, "fix", false, "Show fix suggestions for violations")
 	scanCmd.Flags().BoolVar(&noColorFlag, "no-color", false, "Disable colored output")
 	scanCmd.Flags().StringVarP(&outputFile, "output", "o", "", "Write output to file instead of stdout")
+	scanCmd.Flags().StringVar(&configPath, "config", "", "Path to .pipeguard.yml config file.")
 
 	rootCmd.AddCommand(scanCmd)
 	rootCmd.SetVersionTemplate(fmt.Sprintf("PipeGuard v%s — Pipeline Security & Quality Scanner by yhakkache\n", version))
@@ -76,6 +79,20 @@ func runScan(cmd *cobra.Command, args []string) error {
 	// Check path exists
 	if _, err := os.Stat(absPath); os.IsNotExist(err) {
 		return fmt.Errorf("path does not exist: %s", absPath)
+	}
+
+	// Load config if provided
+	var cfg *config.Config
+
+	if configPath != "" {
+		if _, err := os.Stat(configPath); os.IsNotExist(err) {
+			return fmt.Errorf("config file not found: %s", configPath)
+		}
+		c, err := config.Load(configPath)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+		cfg = c
 	}
 
 	// Handle --no-color flag
@@ -109,10 +126,30 @@ func runScan(cmd *cobra.Command, args []string) error {
 	// Step 2: Initialize rule engine
 	engine := rules.NewEngine()
 
+	// Apply config overrides if config is loaded
+	if cfg != nil {
+		engine.DisableRules(cfg.Disable)
+		engine.OverrideSeverity(cfg.SeverityOverride)
+	}
+
 	// Step 3: Parse and evaluate each file
 	var results []output.FileResult
 
 	for _, file := range files {
+
+		// Check ignore paths from config
+		if cfg != nil {
+			ignored := false
+			for _, path := range cfg.IgnorePaths {
+				if strings.Contains(file.Path, path) {
+					ignored = true
+					break
+				}
+			}
+			if ignored {
+				continue
+			}
+		}
 		// Parse file content
 		parsed, err := parser.Parse(file.Path, file.Type)
 		if err != nil {

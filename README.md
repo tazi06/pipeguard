@@ -134,6 +134,73 @@ pipeguard scan . --no-color
 pipeguard scan . --severity medium --format json --output report.json
 ```
 
+## Configuration
+
+PipeGuard supports an optional YAML configuration file to customize scanning behavior.
+Use the `--config` flag:
+
+```bash
+pipeguard scan . --config .pipeguard.yml
+```
+### Example .pipeguard.yml
+```yaml
+disable:
+  - R01
+  - D15
+
+severity-override:
+  R05: medium
+
+ignore-paths:
+  - vendor/
+  - test/
+```
+### Supported Options
+
+| Key                 | Description                                   |
+| ------------------- | --------------------------------------------- |
+| `disable`           | List of rule IDs to disable entirely          |
+| `severity-override` | Override severity level for specific rule IDs |
+| `ignore-paths`      | Skip scanning files under specified paths     |
+
+### Behavior Details
+
+#### Rule Disabling
+
+Rules listed under disable will not be evaluated at all.
+```yaml
+disable:
+  - R01
+```
+The rule `R01` will be removed from the engine before evaluation.
+
+#### Severity Override
+
+Overrides modify the rule severity before scoring and filtering.
+
+```yaml
+severity-override:
+  R05: medium
+```
+If `R05` was originally `HIGH`, it will now be treated as `MEDIUM`.
+
+This affects:
+  * Severity filtering (--severity)
+  * Score calculation
+  * CI/CD exit behavior
+  
+#### Ignore Paths
+
+Files matching any entry in `ignore-paths` will not be scanned.
+
+```yaml
+ignore-paths:
+  - vendor/
+  - test/
+```
+This prevents evaluation of files under those directories.
+
+
 ## Rules
 
 PipeGuard includes **145 rules** organized into 9 categories:
@@ -248,7 +315,7 @@ pipeguard/
 
 - **Deterministic** — same input always produces same output, no AI/ML
 - **Fast** — pure regex matching, no network calls, no external processes
-- **Zero config** — works out of the box with sensible defaults
+- **Zero config by default** — optional `.pipeguard.yml` for rule customization
 - **CI-native** — exit codes, SARIF output, severity filtering for gates
 - **Professional** — ANSI colors (auto-disabled for non-terminals)
 

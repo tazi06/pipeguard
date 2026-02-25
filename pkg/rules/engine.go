@@ -1,6 +1,8 @@
 // Package rules provides the rule evaluation engine for PipeGuard.
 package rules
 
+import "strings"
+
 // Engine holds all registered rules and evaluates them against parsed files.
 type Engine struct {
 	rules []*Rule
@@ -162,4 +164,45 @@ func FilterBySeverity(violations []Violation, minSeverity Severity) []Violation 
 		}
 	}
 	return filtered
+}
+
+// removes rules with the given IDs from the engine by reading the give yml config file.
+func (e *Engine) DisableRules(ids []string) {
+	if len(ids) == 0 {
+		return
+	}
+	idSet := make(map[string]struct{})
+	for _, id := range ids {
+		idSet[id] = struct{}{}
+	}
+	var filtered []*Rule
+	for _, r := range e.rules {
+		if _, disabled := idSet[r.ID]; !disabled {
+			filtered = append(filtered, r)
+		}
+	}
+	e.rules = filtered
+}
+
+// updates the severity of rules based on the provided overrides map (rule ID -> severity string).
+func (e *Engine) OverrideSeverity(overrides map[string]string) {
+	if len(overrides) == 0 {
+		return
+	}
+	for _, r := range e.rules {
+		if sev, ok := overrides[r.ID]; ok {
+			switch strings.ToLower(sev) {
+			case "critical":
+				r.Severity = Critical
+			case "high":
+				r.Severity = High
+			case "medium":
+				r.Severity = Medium
+			case "low":
+				r.Severity = Low
+			case "info":
+				r.Severity = Info
+			}
+		}
+	}
 }
