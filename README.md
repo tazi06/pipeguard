@@ -40,7 +40,7 @@ RESULTS
 - **4 file types** — GitLab CI, GitHub Actions, Jenkinsfile, Dockerfile
 - **Dual scoring** — Security score (0-100) + Quality score (0-100)
 - **Maturity levels** — Level 0 (None) to Level 5 (Optimized)
-- **3 output formats** — Terminal (ANSI colors), JSON, SARIF v2.1.0
+- **4 output formats** — Terminal (ANSI colors), JSON, HTML, SARIF v2.1.0
 - **Fix suggestions** — deterministic auto-fix descriptions for ~85% of rules
 - **CI/CD gate** — exit code 1 when critical or high violations found
 - **Zero config** — point it at a directory and scan
@@ -102,9 +102,13 @@ pipeguard scan . --format json
 # SARIF v2.1.0 — for GitHub/GitLab Security tabs
 pipeguard scan . --format sarif
 
+# HTML — standalone shareable report
+pipeguard scan . --format html
+
 # Save to file
 pipeguard scan . --format json --output report.json
 pipeguard scan . --format sarif --output report.sarif
+pipeguard scan . --format html --output report.html
 ```
 
 ### Filtering
@@ -122,6 +126,25 @@ pipeguard scan . --category SEC,DEP
 
 # Combine severity and category filters
 pipeguard scan . --category JEN --severity high
+```
+
+### List Built-in Rules
+
+```bash
+# List all rules (table format)
+pipeguard rules
+
+# Output as JSON (machine-readable)
+pipeguard rules --format json
+
+# Filter by category
+pipeguard rules --category SEC
+
+# Filter by severity
+pipeguard rules --severity critical
+
+# Combine filters
+pipeguard rules --category DOC --severity high
 ```
 
 ### Fix Suggestions
@@ -249,6 +272,7 @@ pipeguard/
       json.go           JSON formatter
       sarif.go          SARIF v2.1.0 formatter
       colors.go         ANSI color management
+      html.go           Standalone HTML report formatter
 ```
 
 ## Design Principles
