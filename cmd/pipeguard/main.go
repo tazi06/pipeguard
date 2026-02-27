@@ -30,9 +30,9 @@ var (
 
 func main() {
 	rootCmd := &cobra.Command{
-		Use:   "pipeguard",
-		Short: "Pipeline Security & Quality Scanner",
-		Long:  "PipeGuard scans your CI/CD pipelines, Dockerfiles, and Jenkinsfiles\nfor security vulnerabilities and quality issues.\n\n145 built-in rules | Deterministic auto-fix | Zero network\nhttps://pipeguard.dev",
+		Use:     "pipeguard",
+		Short:   "Pipeline Security & Quality Scanner",
+		Long:    "PipeGuard scans your CI/CD pipelines, Dockerfiles, and Jenkinsfiles\nfor security vulnerabilities and quality issues.\n\n145 built-in rules | Deterministic auto-fix | Zero network\nhttps://pipeguard.dev",
 		Version: version,
 		CompletionOptions: cobra.CompletionOptions{
 			DisableDefaultCmd: true,
@@ -47,7 +47,7 @@ func main() {
 		RunE:  runScan,
 	}
 
-	scanCmd.Flags().StringVarP(&formatFlag, "format", "f", "terminal", "Output format: terminal, json, sarif")
+	scanCmd.Flags().StringVarP(&formatFlag, "format", "f", "terminal", "Output format: terminal, json, sarif, html")
 	scanCmd.Flags().StringVarP(&severityFlag, "severity", "s", "", "Filter by minimum severity: critical, high, medium, low")
 	scanCmd.Flags().BoolVar(&fixFlag, "fix", false, "Show fix suggestions for violations")
 	scanCmd.Flags().BoolVar(&noColorFlag, "no-color", false, "Disable colored output")
@@ -178,8 +178,11 @@ func runScan(cmd *cobra.Command, args []string) error {
 	case "terminal", "":
 		formatter := output.NewTerminalFormatter(writer, fixFlag)
 		formatter.FormatReport(results)
+	case "html":
+		formatter := output.NewHTMLFormatter(writer)
+		formatter.FormatReport(results)
 	default:
-		return fmt.Errorf("unsupported format: %s (use: terminal, json, sarif)", formatFlag)
+		return fmt.Errorf("unsupported format: %s (use: terminal, json, sarif, html)", formatFlag)
 	}
 
 	// Exit code: non-zero if critical or high violations found
