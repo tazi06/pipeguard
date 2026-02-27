@@ -23,6 +23,12 @@ var (
 	version = "0.1.0"
 
 	// CLI flags
+	formatFlag   string
+	severityFlag string
+	categoryFlag string
+	fixFlag      bool
+	noColorFlag  bool
+	outputFile   string
 	formatFlag    string
 	severityFlag  string
 	fixFlag       bool
@@ -54,6 +60,7 @@ func main() {
 
 	scanCmd.Flags().StringVarP(&formatFlag, "format", "f", "terminal", "Output format: terminal, json, sarif, html")
 	scanCmd.Flags().StringVarP(&severityFlag, "severity", "s", "", "Filter by minimum severity: critical, high, medium, low")
+	scanCmd.Flags().StringVarP(&categoryFlag, "category", "c", "", "Filter by category (comma-separated: SEC,SAS,SCA,DST,DEP,GOV,JEN,DOC,PQL)")
 	scanCmd.Flags().BoolVar(&fixFlag, "fix", false, "Show fix suggestions for violations")
 	scanCmd.Flags().BoolVar(&noColorFlag, "no-color", false, "Disable colored output")
 	scanCmd.Flags().StringVarP(&outputFile, "output", "o", "", "Write output to file instead of stdout")
@@ -116,6 +123,22 @@ func runScan(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	// Parse category filter
+	var allowedCategories map[rules.Category]bool
+	if categoryFlag != "" {
+		allowedCategories = make(map[rules.Category]bool)
+		inputCategories := strings.Split(categoryFlag, ",")
+		for _, cat := range inputCategories {
+			clean := strings.ToUpper(strings.TrimSpace(cat))
+			c := rules.Category(clean)
+
+			if !isValidCategory(c) {
+				return fmt.Errorf("invalid category: %s (use: SEC,SAS,SCA,DST,DEP,GOV,JEN,DOC,PQL)", clean)
+			}
+			allowedCategories[c] = true
+		}
+	}
+
 	// Step 1: Detect files
 	files, err := detector.Detect(absPath)
 	if err != nil {
@@ -153,6 +176,16 @@ func runScan(cmd *cobra.Command, args []string) error {
 			violations = rules.FilterBySeverity(violations, minSeverity)
 		}
 
+		// Apply category filter
+		if allowedCategories != nil {
+			var filtered []rules.Violation
+			for _, v := range violations {
+				if allowedCategories[v.Rule.Category] {
+					filtered = append(filtered, v)
+				}
+			}
+			violations = filtered
+		}
 		// Calculate scores
 		score := scorer.Calculate(violations)
 
@@ -213,6 +246,11 @@ func runScan(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// isValidCategory checks if the provided category is one of the allowed categories
+func isValidCategory(c rules.Category) bool {
+	switch c {
+	case rules.SEC, rules.SAS, rules.SCA, rules.DST, rules.DEP, rules.GOV, rules.JEN, rules.DOC, rules.PQL:
+		return true
 // getRules handles the "rules" command, listing all rules with optional filtering and formatting
 func getRules(cmd *cobra.Command, args []string) error {
 	engine := rules.NewEngine()
